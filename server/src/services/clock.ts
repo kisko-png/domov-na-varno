@@ -28,6 +28,11 @@ export class ClockService {
     };
   }
 
+  /** Sets the offset back to 0. */
+  reset(): void {
+    this.repo.setOffsetMinutes(0);
+  }
+
   /** Adds `minutes` to the offset and returns the new clock. */
   advance(minutes: number): SimClock {
     this.repo.setOffsetMinutes(this.repo.getOffsetMinutes() + minutes);

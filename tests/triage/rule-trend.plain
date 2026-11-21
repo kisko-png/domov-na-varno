@@ -1,0 +1,15 @@
+---
+module: triage
+func_id: rule-trend
+---
+
+***conformance tests***
+
+# worse-twice-yellow
+For the hip replacement :Protocol:, a :CheckIn: with `painTrend` `WORSE` whose :History: ends with a :CheckIn: with `painTrend` `WORSE` gets an `R6` :Reason: and at least `YELLOW`; with that :History: ending in `SAME` instead, it gets no `R6` :Reason:.
+
+# much-worse-by-tier
+A :CheckIn: with `wellbeingTrend` `MUCH_WORSE` and values within the expected curves gets one `R6` :Reason: with `status` `YELLOW` for the hip replacement :Protocol:, and `RED` with a `NURSE` :Alert: for the cardiac surgery :Protocol:.
+
+# no-trend-first-check-in
+A :CheckIn: without `painTrend` and `wellbeingTrend`, and with an empty :History:, gets no `R6` :Reason:.

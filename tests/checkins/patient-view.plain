@@ -1,0 +1,9 @@
+---
+module: checkins
+func_id: patient-view
+---
+
+***conformance tests***
+
+# previous-values
+Right after the service starts, `GET /p/tok-01` has `trendApplies` `true` and a `previousCheckIn` with `pain` 7 and `wellbeing` 2.

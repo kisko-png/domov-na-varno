@@ -21,7 +21,7 @@ export type {
   CheckInScheduleEntry,
 } from "./core/riskTiers.js";
 export { buildSeed } from "./core/seed.js";
-export type { Seed, Patient, Report, CheckIn } from "./core/seed.js";
+export type { Seed, Patient, Report, CheckIn, Trend } from "./core/seed.js";
 export {
   expectedForDay,
   dayAfterDischarge,

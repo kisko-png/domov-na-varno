@@ -43,6 +43,17 @@ Rule `R3` compares the :CheckIn: with the expected curves of its `dayAfterDischa
 # rule-pain-jump
 Rule `R4`: a `pain` 3 or more points above the `pain` of a :CheckIn: of the :History: made in the 24 hours before adds a `YELLOW` :Reason:.
 
+# rule-trend
+Rule `R6` reads the `painTrend` and the `wellbeingTrend` of the :CheckIn:, each on its own; a :CheckIn: without them triggers none.
+- `WORSE`, when the latest :CheckIn: of the :History: had `WORSE` or `MUCH_WORSE` for the same trend, adds a `YELLOW` :Reason:.
+- `MUCH_WORSE` adds a `YELLOW` :Reason:, `RED` instead when the :Protocol:'s `riskTier` is `HIGH`.
+- At most one :Reason: per trend; its text names pain or wellbeing.
+
+# rule-weight
+Rule `R7` compares `measurements.weightKg` of the :CheckIn: with those of the :History:; a :CheckIn: without it triggers none.
+- It adds one `YELLOW` :Reason: when `weightKg` is 1 kg or more above that of a :CheckIn: of the :History: on the day before, or 2 kg or more above that of one made in the 7 days before.
+- The :Reason: text gives the gain in kg.
+
 # assess-silence
 `assessSilence({ patient, protocol, checkIns, now, assessmentId, alertId })` returns `{ assessment, alert? }` for rule `R5`, or `null` when the :Patient: is not silent.
 - The slot counted is the earliest :CheckInSlot: due at or before `now` and after the latest :CheckIn: of `checkIns`, that is not covered; a slot of `index` n is covered when its day has at least n :CheckIn: items.

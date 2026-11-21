@@ -63,6 +63,34 @@ describe("GET /sim/now", () => {
 });
 
 describe("POST /sim/advance", () => {
+  it.each([
+    { payload: {}, headers: {} },
+    { payload: undefined, headers: {} },
+    { payload: "", headers: { "content-type": "application/json" } },
+    { payload: "", headers: { "content-type": "text/plain" } },
+  ])("adds 1440 minutes without minutes or a body (%j)", async (req) => {
+    const app = await make();
+    const res = await app.inject({
+      method: "POST",
+      url: "/sim/advance",
+      ...req,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().offsetMinutes).toBe(1440);
+  });
+
+  it("gives Slovenian validation details", async () => {
+    const app = await make();
+    const res = await app.inject({
+      method: "POST",
+      url: "/sim/advance",
+      payload: { minutes: 0 },
+    });
+    expect(res.json().error.details[0].message).toBe(
+      "Vrednost mora biti vsaj 1.",
+    );
+  });
+
   it("adds minutes to the offset, cumulatively", async () => {
     const app = await make();
     await app.inject({
@@ -84,7 +112,7 @@ describe("POST /sim/advance", () => {
     expect(now.json()).toEqual(res.json());
   });
 
-  it.each([{}, { minutes: 0 }, { minutes: 1.5 }, { minutes: "x" }])(
+  it.each([{ minutes: 0 }, { minutes: 1.5 }, { minutes: "x" }])(
     "rejects %j with 422 validation_error",
     async (payload) => {
       const app = await make();

@@ -1,0 +1,9 @@
+---
+module: api
+func_id: admin-reset
+---
+
+***conformance tests***
+
+# reset-to-seed
+After a `POST /reports` that creates a :Patient: and a `POST /sim/advance` with 600 minutes, `POST /admin/reset` with no body returns `200` with `offsetMinutes` 0, and `GET /patients` then returns exactly the 12 :Patient: items `pat-01` to `pat-12`.

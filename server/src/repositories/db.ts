@@ -30,3 +30,28 @@ export function openDb(path: string): Db {
     throw new StorageError(`Cannot open database at ${path}`, { cause: err });
   }
 }
+
+const DATA_TABLES = [
+  "patients",
+  "reports",
+  "check_ins",
+  "assessments",
+  "alerts",
+  "drafts",
+  "reminders",
+  "chat_sessions",
+];
+
+/** Empties the database for a demo reset: drops every data table (so no DELETE trigger fires and AUTOINCREMENT restarts) and recreates them. */
+export function resetDb(db: Db): void {
+  db.exec("BEGIN");
+  try {
+    for (const t of DATA_TABLES) db.exec(`DROP TABLE IF EXISTS ${t}`);
+    db.exec("DELETE FROM settings");
+    db.exec(SCHEMA);
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw new StorageError("Cannot reset the database", { cause: err });
+  }
+}

@@ -1,19 +1,37 @@
 // conformance tests of checkins:submit-check-in
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { call, get, show, startService, type Service } from "./server.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  call,
+  get,
+  show,
+  startService,
+  type Res,
+  type Service,
+} from "./server.js";
 
-const TOKEN = "tok-09";
+// One service; each submitting test advances 1440 minutes first and uses its own patient.
 let svc: Service;
-beforeEach(async () => {
+beforeAll(async () => {
   svc = await startService();
 }, 120_000);
-afterEach(async () => {
+afterAll(async () => {
   await svc?.stop();
 });
+
+async function advanceDay(): Promise<void> {
+  const adv = await call(svc, "POST", "/sim/advance", { minutes: 1440 });
+  expect(adv.status, `advance 1440: ${show(adv)}`).toBe(200);
+}
+
+function count(r: Res): number {
+  return Array.isArray(r.body) ? r.body.length : -1;
+}
 
 describe("checkins:submit-check-in", () => {
   // conformance scenario t10-magic-link of checkins:submit-check-in
   it("t10-magic-link", async () => {
+    const TOKEN = "tok-08";
+    await advanceDay();
     // Step 1: open the magic link - no login, no header.
     const view = await call(svc, "GET", `/p/${TOKEN}`);
     expect(view.status, `step 1 GET /p/${TOKEN}: ${show(view)}`).toBe(200);
@@ -40,8 +58,8 @@ describe("checkins:submit-check-in", () => {
     );
     expect(sub.status, `step 3 submit: ${show(sub)}`).toBe(201);
     const id = get(sub.body, "checkIn.id");
-    expect(get(sub.body, "checkIn.patientId"), show(sub)).toBe("pat-09");
-    const hist = await call(svc, "GET", "/patients/pat-09/checkins");
+    expect(get(sub.body, "checkIn.patientId"), show(sub)).toBe("pat-08");
+    const hist = await call(svc, "GET", "/patients/pat-08/checkins");
     const ids = Array.isArray(hist.body)
       ? hist.body.map((c) => get(c, "id"))
       : [];
@@ -50,7 +68,8 @@ describe("checkins:submit-check-in", () => {
 
   // conformance scenario t15-required-fields of checkins:submit-check-in
   it("t15-required-fields", async () => {
-    const before = await call(svc, "GET", "/patients/pat-09/checkins");
+    const TOKEN = "tok-11";
+    const before = await call(svc, "GET", "/patients/pat-11/checkins");
     const missing = [
       { final: true, pain: 2, symptoms: [] },
       { final: true, wellbeing: 4, symptoms: [] },
@@ -64,7 +83,7 @@ describe("checkins:submit-check-in", () => {
         `${JSON.stringify(body)}: ${show(r)}`,
       ).toBe("validation_error");
     }
-    const after = await call(svc, "GET", "/patients/pat-09/checkins");
+    const after = await call(svc, "GET", "/patients/pat-11/checkins");
     expect(after.body, "a rejected check-in was stored").toEqual(before.body);
 
     const draft = await call(
@@ -93,7 +112,7 @@ describe("checkins:submit-check-in", () => {
       const adv = await call(svc, "POST", "/sim/advance", { minutes });
       expect(adv.status, show(adv)).toBe(200);
     }
-    const rem = await call(svc, "GET", "/reminders?patientId=pat-09");
+    const rem = await call(svc, "GET", "/reminders?patientId=pat-11");
     expect(rem.status, show(rem)).toBe(200);
     const list = Array.isArray(rem.body) ? rem.body : [];
     const mine = list.find(
@@ -113,6 +132,8 @@ describe("checkins:submit-check-in", () => {
 
   // conformance scenario t16-red-flag-check-in of checkins:submit-check-in
   it("t16-red-flag-check-in", async () => {
+    const TOKEN = "tok-12";
+    await advanceDay();
     const prev = await call(
       svc,
       "POST",
@@ -140,12 +161,13 @@ describe("checkins:submit-check-in", () => {
 
   // conformance scenario fever-red of checkins:submit-check-in
   it("fever-red", async () => {
+    await advanceDay();
     const sub = await call(
       svc,
       "POST",
       "/checkins",
       { final: true, wellbeing: 4, pain: 1, symptoms: [], temperatureC: 38.7 },
-      TOKEN,
+      "tok-09",
     );
     expect(sub.status, show(sub)).toBe(201);
     expect(get(sub.body, "assessment.status"), show(sub)).toBe("RED");
@@ -156,12 +178,13 @@ describe("checkins:submit-check-in", () => {
 
   // conformance scenario stable-green of checkins:submit-check-in
   it("stable-green", async () => {
+    await advanceDay();
     const sub = await call(
       svc,
       "POST",
       "/checkins",
       { final: true, wellbeing: 5, pain: 0, symptoms: [], temperatureC: 36.8 },
-      TOKEN,
+      "tok-10",
     );
     expect(sub.status, show(sub)).toBe(201);
     expect(get(sub.body, "assessment.status"), show(sub)).toBe("GREEN");
@@ -169,5 +192,37 @@ describe("checkins:submit-check-in", () => {
     expect(get(sub.body, "reassuranceText"), show(sub)).toBe(
       "v okviru pričakovanega za ta dan",
     );
+  });
+
+  // conformance scenario one-final-per-slot of checkins:submit-check-in
+  it("one-final-per-slot", async () => {
+    await advanceDay();
+    const before = await call(svc, "GET", "/patients/pat-03/checkins");
+    expect(before.status, show(before)).toBe(200);
+    const body = { final: true, wellbeing: 4, pain: 3, symptoms: [] };
+    const first = await call(svc, "POST", "/checkins", body, "tok-03");
+    expect(first.status, `first: ${show(first)}`).toBe(201);
+    const again = await call(svc, "POST", "/checkins", body, "tok-03");
+    expect(again.status, `again: ${show(again)}`).toBe(409);
+    expect(get(again.body, "error.code"), show(again)).toBe(
+      "already_submitted",
+    );
+    const after = await call(svc, "GET", "/patients/pat-03/checkins");
+    expect(count(after), `before ${show(before)} after ${show(after)}`).toBe(
+      count(before) + 1,
+    );
+  });
+
+  // conformance scenario first-check-in-without-trend of checkins:submit-check-in
+  it("first-check-in-without-trend", async () => {
+    await advanceDay();
+    const sub = await call(
+      svc,
+      "POST",
+      "/checkins",
+      { final: true, wellbeing: 4, pain: 3, symptoms: [] },
+      "tok-04",
+    );
+    expect(sub.status, show(sub)).toBe(201);
   });
 });

@@ -1,0 +1,12 @@
+---
+module: triage
+func_id: rule-weight
+---
+
+***conformance tests***
+
+# gain-since-yesterday
+For the cardiac surgery :Protocol:, a :CheckIn: with `measurements.weightKg` 81.0 on day 5, whose :History: has one on day 4 with 80.0, gets one `YELLOW` `R7` :Reason:; with 80.5 on day 4 instead, it gets none.
+
+# gain-within-week
+A :CheckIn: with `weightKg` 82.0 on day 8, whose :History: has 80.0 on day 3 and 81.5 on day 7, gets one `YELLOW` `R7` :Reason:.

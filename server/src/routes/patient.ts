@@ -8,6 +8,20 @@ const FilledBy = Type.Union([
   Type.Literal("CAREGIVER"),
 ]);
 
+const TrendSchema = Type.Union([
+  Type.Literal("MUCH_BETTER"),
+  Type.Literal("BETTER"),
+  Type.Literal("SAME"),
+  Type.Literal("WORSE"),
+  Type.Literal("MUCH_WORSE"),
+]);
+const MeasurementsSchema = Type.Record(Type.String(), Type.Number());
+const TrendFields = {
+  painTrend: Type.Optional(TrendSchema),
+  wellbeingTrend: Type.Optional(TrendSchema),
+  measurements: Type.Optional(MeasurementsSchema),
+};
+
 const RedFlagSchema = Type.Object({
   id: Type.String(),
   symptom: Type.String(),
@@ -35,7 +49,16 @@ export const ProtocolSchema = Type.Object({
   }),
   expectedCurve: Any,
   questions: Type.Array(
-    Type.Object({ id: Type.String(), label: Type.String() }),
+    Type.Object({
+      id: Type.String(),
+      label: Type.String(),
+      kind: Type.Union([
+        Type.Literal("RED_FLAG"),
+        Type.Literal("SYMPTOM"),
+        Type.Literal("MEASUREMENT"),
+      ]),
+      unit: Type.Optional(Type.String()),
+    }),
   ),
   redFlags: Type.Array(RedFlagSchema),
   surveyGraph: Any,
@@ -54,6 +77,7 @@ const DraftSchema = Type.Object({
   wellbeing: Type.Optional(Type.Integer()),
   pain: Type.Optional(Type.Integer()),
   symptoms: Type.Optional(Type.Array(Type.String())),
+  ...TrendFields,
   temperatureC: Type.Optional(Type.Number()),
   photoRef: Type.Optional(Type.String()),
   note: Type.Optional(Type.String()),
@@ -85,6 +109,15 @@ const PatientViewSchema = Type.Object({
   }),
   draft: Type.Optional(DraftSchema),
   pendingReminder: Type.Optional(ReminderSchema),
+  trendApplies: Type.Boolean(),
+  previousCheckIn: Type.Optional(
+    Type.Object({
+      timestamp: Type.String(),
+      pain: Type.Integer(),
+      wellbeing: Type.Integer(),
+      ...TrendFields,
+    }),
+  ),
   demoNotice: Type.String(),
 });
 
@@ -106,6 +139,7 @@ export const CheckInSchema = Type.Object({
   wellbeing: Type.Integer(),
   pain: Type.Integer(),
   symptoms: Type.Array(Type.String()),
+  ...TrendFields,
   temperatureC: Type.Optional(Type.Number()),
   photoRef: Type.Optional(Type.String()),
   note: Type.Optional(Type.String()),
@@ -152,6 +186,7 @@ const CheckInSubmitSchema = Type.Object({
   wellbeing: Type.Optional(Type.Integer({ minimum: 1, maximum: 5 })),
   pain: Type.Optional(Type.Integer({ minimum: 0, maximum: 10 })),
   symptoms: Type.Optional(Type.Array(Type.String())),
+  ...TrendFields,
   temperatureC: Type.Optional(Type.Number({ minimum: 34, maximum: 43 })),
   photoRef: Type.Optional(Type.String()),
   note: Type.Optional(Type.String({ maxLength: 2000 })),

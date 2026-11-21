@@ -1,4 +1,4 @@
-import { getProtocol, type Protocol } from "./protocols.js";
+import { getProtocol, orderQuestions, type Protocol } from "./protocols.js";
 import type { Patient, Report } from "./seed.js";
 import { SL } from "../strings.sl.js";
 
@@ -30,10 +30,14 @@ export function personalProtocol(protocol: Protocol, report: Report): Protocol {
   const copy = structuredClone(protocol);
   if (!report.medications.some(isAnticoagulant)) return copy;
   if (!copy.questions.some((q) => q.id === "heavy-bleeding"))
-    copy.questions.push({
-      id: "heavy-bleeding",
-      label: SL.personal.bleedingLabel,
-    });
+    copy.questions = orderQuestions([
+      ...copy.questions,
+      {
+        id: "heavy-bleeding",
+        label: SL.personal.bleedingLabel,
+        kind: "RED_FLAG",
+      },
+    ]);
   copy.redFlags.push({
     id: "anticoagulant-bleeding",
     symptom: "heavy-bleeding",

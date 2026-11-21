@@ -24,7 +24,7 @@ mutation-testing: true
 allow-to-stop-jobs: true
 
 # Whether every pulse that lands code is launched, in the background, as the project's launch guidance says.
-launch-after-pulse: true
+launch-after-pulse: false
 
 # Whether a chat of its own, the sentinel, checks every pulse that finishes - and, with launch-after-pulse, tests what
 # was launched - and tells you in the chat you are in when something needs you. ask: you are asked, with what it does,

@@ -49,11 +49,18 @@ export interface CheckIn {
   wellbeing: number;
   pain: number;
   symptoms: string[];
+  painTrend?: Trend;
+  wellbeingTrend?: Trend;
+  /** A number for each MEASUREMENT question id given, e.g. `{ weightKg: 82.4 }`. */
+  measurements?: Record<string, number>;
   temperatureC?: number;
   photoRef?: string;
   note?: string;
   filledBy: "PATIENT" | "CAREGIVER";
 }
+
+/** How a value changed since the previous check-in, as the patient tells it. */
+export type Trend = "MUCH_BETTER" | "BETTER" | "SAME" | "WORSE" | "MUCH_WORSE";
 
 /** The demo data. */
 export interface Seed {

@@ -1,6 +1,6 @@
-import type { CheckIn, Patient, Report } from "../core/seed.js";
+import type { CheckIn, Patient, Report, Trend } from "../core/seed.js";
 import type { Alert, Assessment } from "../core/triage.js";
-import type { Db } from "./db.js";
+import { resetDb, type Db } from "./db.js";
 
 /** An unfinished check-in of one patient and slot. */
 export interface CheckInDraft {
@@ -11,6 +11,9 @@ export interface CheckInDraft {
   wellbeing?: number;
   pain?: number;
   symptoms?: string[];
+  painTrend?: Trend;
+  wellbeingTrend?: Trend;
+  measurements?: Record<string, number>;
   temperatureC?: number;
   photoRef?: string;
   note?: string;
@@ -94,6 +97,8 @@ export interface StoreContents {
 export interface StoreRepository {
   /** Whether no patient is stored. */
   isEmpty(): boolean;
+  /** Removes every stored record, so every id count starts again. */
+  clear(): void;
   /** Adds all the given records in one transaction. */
   addAll(contents: StoreContents): void;
   /** Stores a final check-in with its assessment and alert, and deletes the draft of a slot, in one transaction. */
@@ -153,6 +158,9 @@ export function sqliteStoreRepository(db: Db): StoreRepository {
   return {
     isEmpty() {
       return db.prepare("SELECT 1 FROM patients LIMIT 1").get() === undefined;
+    },
+    clear() {
+      resetDb(db);
     },
     addAll(c) {
       db.exec("BEGIN");
@@ -312,6 +320,16 @@ export function memoryStoreRepository(): StoreRepository {
   const chats = new Map<string, ChatSession>();
   return {
     isEmpty: () => s.patients.length === 0,
+    clear() {
+      s.patients.length = 0;
+      s.reports.length = 0;
+      s.checkIns.length = 0;
+      s.assessments.length = 0;
+      s.alerts.length = 0;
+      drafts.clear();
+      reminders.length = 0;
+      chats.clear();
+    },
     addAll(c) {
       s.patients.push(...structuredClone(c.patients));
       s.reports.push(...structuredClone(c.reports));

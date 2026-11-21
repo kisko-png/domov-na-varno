@@ -1,0 +1,12 @@
+---
+module: chat
+func_id: chat-guidance
+---
+
+***conformance tests***
+
+# inflected-swelling
+With the token of `pat-03`, `POST /chat` with `text` "Noga mi je otekla" returns `type` `GUIDANCE` with a non-empty `watchFor`.
+
+# driving-topic
+With the token of `pat-07`, `POST /chat` with `text` "Kdaj bom lahko spet vozil avto?" returns `type` `GUIDANCE`.

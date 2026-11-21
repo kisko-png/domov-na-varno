@@ -1,0 +1,9 @@
+---
+module: checkins
+func_id: sim-clock
+---
+
+***conformance tests***
+
+# advance-without-body
+`POST /sim/advance` with `Content-Type: application/json` and no body returns `200` with `offsetMinutes` 1440.

@@ -63,6 +63,16 @@ export const SL = {
     painJump: (from: number, to: number): string =>
       `Bolečina se je v 24 urah povečala z ${from} na ${to}.`,
     silence: (hours: number): string => `Dnevna prijava zamuja ${hours} ur.`,
+    trendWorse: (what: "pain" | "wellbeing"): string =>
+      what === "pain"
+        ? "Bolečina se po navedbah bolnika slabša že drugič zapored."
+        : "Počutje se po navedbah bolnika slabša že drugič zapored.",
+    trendMuchWorse: (what: "pain" | "wellbeing"): string =>
+      what === "pain"
+        ? "Bolečina je po navedbah bolnika veliko hujša."
+        : "Počutje je po navedbah bolnika veliko slabše.",
+    weightGain: (kg: string): string =>
+      `Telesna teža se je povečala za ${kg} kg.`,
   },
   patient: {
     callScript: (name: string, phone: string, reasons: string[]): string =>
@@ -186,7 +196,20 @@ export const SL = {
       `Pot ${method} ${url} ne obstaja.`,
     validation: "Manjkajo obvezni podatki ali pa niso veljavni.",
     invalidField: "Neveljavna vrednost.",
-    requiredField: "Podatek je obvezen.",
+    requiredField: (field: string): string => `Manjka obvezno polje ${field}.`,
+    alreadySubmitted:
+      "Današnji vprašalnik ste že oddali. Naslednjega lahko izpolnite, ko bo na vrsti.",
+    unknownMeasurement: (id: string): string =>
+      `Meritev ${id} ni v vašem protokolu.`,
+    invalidType: "Vrednost je napačnega tipa.",
+    tooSmall: (limit: unknown): string =>
+      `Vrednost mora biti vsaj ${String(limit)}.`,
+    tooLarge: (limit: unknown): string =>
+      `Vrednost je lahko največ ${String(limit)}.`,
+    tooLong: (limit: unknown): string =>
+      `Besedilo je lahko dolgo največ ${String(limit)} znakov.`,
+    notAllowedValue: "Vrednost ni med dovoljenimi.",
+    unknownField: (field: string): string => `Polje ${field} ni dovoljeno.`,
     badRequest: "Zahteve ni mogoče prebrati.",
     methodNotAllowed: (method: string): string =>
       `Metoda ${method} tu ni dovoljena: prijave in ocene se ne spreminjajo.`,

@@ -63,6 +63,11 @@ Show the `text` of every reason, and optionally a badge per rule:
 | R3 | Wellbeing 2 or more below expected | YELLOW; RED if the previous day too |
 | R4 | Pain rose by 3 or more within 24 h | YELLOW |
 | R5 | Silence: a due check-in is late beyond the risk tier's threshold | YELLOW or RED |
+| R6 | `painTrend` or `wellbeingTrend` is `WORSE` and was `WORSE` or `MUCH_WORSE` on the previous check-in | YELLOW |
+| R6 | `painTrend` or `wellbeingTrend` is `MUCH_WORSE` | YELLOW; RED for the HIGH tier (cardiac) |
+| R7 | `measurements.weightKg` is 1 kg or more above the previous day's, or 2 kg or more above a value from the last 7 days | YELLOW |
+
+R6 and R7 use demo values. Each gives one Slovenian reason per trend or measurement.
 
 **Alerts:**
 - Only a `RED` assessment creates an alert, for the `NURSE`.
@@ -96,6 +101,8 @@ Demo tokens: `tok-01` to `tok-12`.
 | tok-05 | Ivan Kovačič | cardiac | stopped checking in after day 4: RED for silence |
 | tok-09 | Matej Golob | abdominal | stable |
 
+After `POST /admin/reset` the data is exactly these 12 patients again.
+
 ### 3.1 Landing – `GET /p/{token}`
 
 It returns a `PatientView`:
@@ -107,9 +114,11 @@ It returns a `PatientView`:
 | `doctorPhone` | A call button, always visible |
 | `patientInstructions[]` | The instructions list: warnings, then restrictions, then recommendations |
 | `currentSlot { day, index, dueAt }` | The check-in this is for. `index` 2 is the second check-in of a day; HIGH tier, days 1–3 only |
+| `trendApplies` | `true` when the patient has a previous check-in: ask the two trend questions (3.2). `false` on the first check-in: ask only the numbers |
+| `previousCheckIn` (when `trendApplies`) | `timestamp`, `pain`, `wellbeing`, `painTrend?`, `wellbeingTrend?`, `measurements?`: show "Zadnjič: bolečina 7, počutje 2" beside the trend questions |
 | `draft` (optional) | An unfinished check-in: open the flow pre-filled at the first empty step |
 | `pendingReminder` (optional) | A banner: "Opomnik: izpolnite današnji vprašalnik" (its `text`) |
-| `protocol` | Holds `questions` (the symptom checklist), `expectedCurve`, `guidanceTopics` and `name` |
+| `protocol` | Holds `questions` (the check-in questions, see 3.2), `expectedCurve`, `guidanceTopics` and `name` |
 | `demoNotice` | Always shown |
 
 Unknown token: `404 not_found`.
@@ -120,11 +129,15 @@ Actions: **Start or continue the check-in**, **Chat with the assistant**, **Call
 
 | Step | Field | Control | Required |
 |---|---|---|---|
-| 1 | `wellbeing` | 1–5 (big buttons or smileys) | yes |
-| 2 | `pain` | 0–10 scale | yes |
-| 3 | `symptoms` | checklist of `protocol.questions[]` (`id`, `label`); none ticked is allowed as `[]`, with a "Nič od tega" button | yes |
-| 4 | `temperatureC` (34–43, one decimal) and `photoRef` | number input; photo picker | no |
+| 1 | `wellbeing`, and `wellbeingTrend` when `trendApplies` | 1-5 (big buttons); then "Ali se počutite bolje kot zadnjič?" with five buttons | `wellbeing` yes; trend no |
+| 2 | `pain`, and `painTrend` when `trendApplies` | 0-10 scale; then "Ali vas boli manj kot zadnjič?" with five buttons | `pain` yes; trend no |
+| 3 | `symptoms` | checklist of the `RED_FLAG` and `SYMPTOM` questions; none ticked is allowed as `[]`, with a "Nič od tega" button | yes |
+| 4 | `measurements`, `temperatureC` (34-43, one decimal) and `photoRef` | a number input per `MEASUREMENT` question, with its `unit`; number input; photo picker | no |
 | 5 | `note` (≤ 2000 characters) | text area | no |
+
+- **Trend buttons** (`Trend`): `MUCH_BETTER` "Veliko bolje", `BETTER` "Bolje", `SAME` "Enako", `WORSE` "Slabše", `MUCH_WORSE` "Veliko slabše". The numbers stay required; the trends are optional. On the first check-in (`trendApplies` `false`), do not ask them and send only the numbers.
+- **Questions** (`protocol.questions[]`): each has `id`, `label`, `kind` and, for a measurement, `unit`. They come ordered `RED_FLAG`, then `SYMPTOM`, then `MEASUREMENT`: keep that order, so the red-flag questions are on top of the checklist. A ticked question's `id` goes into `symptoms`; a measurement goes into `measurements` under its `id`, as `{ "weightKg": 82.4 }`.
+- **Per protocol:** cardiac has the measurement `weightKg` (kg), asked every morning. Hip asks about partial weight bearing and crutches; cardiac about breathlessness lying flat and ankle swelling; abdominal about nausea, bowel movement and appetite. A patient on an anticoagulant keeps the bleeding red-flag question.
 
 - **Who fills it in:** `filledBy` is `PATIENT` (the default) or `CAREGIVER`. Offer a toggle when the patient has a `caregiverName`.
 - **Saving a draft:** after every step, call `POST /checkins` with `{ final: false, ...fields so far }`.
@@ -132,6 +145,7 @@ Actions: **Start or continue the check-in**, **Chat with the assistant**, **Call
   - A later draft replaces the earlier one.
   - The draft is for the current slot, so the reminder and the landing page bring the patient back to it.
 - **Submitting:** call `POST /checkins` with `{ final: true, wellbeing, pain, symptoms, ... }`.
+  - One final check-in per slot. When the current slot already has one and the next is not yet due, the server answers `409 already_submitted`. Show its `message`, "Današnji vprašalnik ste že oddali...", and go back to the landing page. Drafts are never refused.
   - Disable the submit button until the three required fields are set.
   - If the server still answers `422 validation_error`, `error.details[]` lists the missing fields as `{ field, message }`. Return to that step.
 - **Photo:** there is no upload endpoint. `photoRef` is only a string, such as a file name or reference.
@@ -189,7 +203,8 @@ Every `ChatReply` has `sessionId`, `type`, `text`, `watchFor[]`, `alertCreated`,
 - **Survey:** it follows the protocol's graph (onset, severity, accompanying, modifiers), and the next question depends on the answer. A red-flag answer returns `ESCALATION` and ends the survey. An answer id that isn't among the last question's answers gives `422`.
 - **Matching:**
   - Red flags in free text are matched by phrases ("težko diham", "ne morem dihati" and similar).
-  - Topics are matched by keywords; for hip, for example "rana", "boli", "oteklina" and "hoja".
+  - Topics are matched by keywords, including Slovenian inflected forms ("otekla", "otekle", "oteklina", "oteklo"). Every protocol covers: swelling, pain on movement, fever and temperature, sleep, fatigue, driving, returning to work, nausea and appetite, calf pain, bleeding, and the wound; hip also mobility and general pain, cardiac activity and heartbeat, abdominal digestion and the shoulder.
+  - Guidance texts come from the protocol as written. They never contain medication or procedure advice.
 - **End anytime:** offer an "Končaj pogovor" button.
 
 ### 3.6 Chat summary: review and confirm
@@ -295,18 +310,21 @@ A read-only reference of the three base protocols:
 
 A simulated SMS log, newest first. Each entry: `kind` (`FIRST` at the due time, `FOLLOW_UP` 3 hours later), `sentAt`, `slotDay`, `slotIndex`, `text`, and `draftPending` (the patient has an unfinished draft). Show it as a log and as a badge on the patient.
 
-### 4.8 Demo controls (sim)
+### 4.8 Demo controls (sim and reset)
 
 - `GET /sim/now` returns `{ now, offsetMinutes }`. Show it as a "Demo čas" clock in the header.
 - `POST /sim/advance { minutes }` takes minutes ≥ 1. Offer buttons: +15 min (shows escalation), +3 h (reminder follow-up), +1 day (1440).
-- The clock only moves forward, and there is no reset.
+- `POST /sim/advance` with no body moves the clock 1440 minutes.
+- **Reset:** `POST /admin/reset` (demo only, no body) empties the database, sets the clock offset to 0, and seeds the 12 demo patients again with their 7 days of history. It returns `{ now, offsetMinutes: 0 }`. Put it behind a confirm dialog ("Ponastavi demo podatke?"), then refetch everything.
 - After advancing, refetch the dashboard, alerts and brief: silence and escalation happen on that read.
 
 ---
 
 ## 5. Errors
 
-Every error is `{ "error": { "code", "message", "details"? } }`. Branch on `code`; you may show `message` (Slovenian).
+Every error is `{ "error": { "code", "message", "details"? } }`. Branch on `code`. Every `message`, and every `details[].message`, is Slovenian and can be shown as it is.
+
+A POST that takes no body (`/chat/{id}/end`, `/chat/{id}/summary/confirm`, `/alerts/{id}/ack`, `/admin/reset`, `/sim/advance`) may be sent with no body, even with `Content-Type: application/json`.
 
 | HTTP | code | When |
 |---|---|---|
@@ -314,6 +332,7 @@ Every error is `{ "error": { "code", "message", "details"? } }`. Branch on `code
 | 404 | `not_found` | Unknown patient, alert, session or token; staff opening a summary that isn't SENT |
 | 405 | `method_not_allowed` | Any PUT, PATCH or DELETE on check-ins or assessments |
 | 409 | `conflict` | Confirming a summary before ending the chat |
+| 409 | `already_submitted` | A second final check-in for a slot that already has one |
 | 422 | `validation_error` | Missing or invalid fields; `details[] { field, message }` |
 | 422 | `no_matching_protocol` | `POST /reports` with an unknown procedure |
 | 500 | `internal_error` | A server fault: show a generic error |
@@ -326,6 +345,6 @@ Every error is `{ "error": { "code", "message", "details"? } }`. Branch on `code
 - Photo upload. Only `photoRef` text is stored.
 - An export endpoint. Export in the browser.
 - Appointments and transport (a SYSTEM.md stretch goal).
-- Resetting the demo clock or data.
+- Moving the demo clock back. Use the reset instead.
 - Real SMS, or push or websockets. Poll instead.
 - An LLM-polished brief. It's template-based only.

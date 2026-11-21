@@ -81,7 +81,7 @@ describe("POST /checkins final", () => {
     expect(body.checkIn).toEqual({
       id: "chk-1",
       patientId: "pat-09",
-      protocolVersion: "1.0.0",
+      protocolVersion: "1.1.0",
       dayAfterDischarge: 8,
       timestamp: "2026-11-21T08:00:00+01:00",
       wellbeing: 4,
@@ -107,6 +107,12 @@ describe("POST /checkins final", () => {
   it("a red flag gives RED, an alert and the warning", async () => {
     const a = await make();
     const alerts = store.listAlerts().length;
+    // pat-03's day-8 slot is due at 10:00; move the clock past it.
+    await a.inject({
+      method: "POST",
+      url: "/sim/advance",
+      payload: { minutes: 120 },
+    });
     const res = await post(a, "tok-03", {
       final: true,
       pain: 3,
@@ -158,4 +164,104 @@ describe("POST /checkins final", () => {
       expect(store.listCheckIns()).toHaveLength(n);
     },
   );
+});
+
+describe("POST /checkins trends, measurements and one per slot", () => {
+  const advance = (a: FastifyInstance, minutes: number) =>
+    a.inject({ method: "POST", url: "/sim/advance", payload: { minutes } });
+
+  it("answers 409 already_submitted when the current slot is not yet due", async () => {
+    const a = await make();
+    const before = store.listCheckIns().length;
+    // pat-03 checked in on day 7; its day-8 slot is due at 10:00, now is 08:00.
+    const res = await post(a, "tok-03", {
+      final: true,
+      pain: 3,
+      wellbeing: 4,
+      symptoms: [],
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe("already_submitted");
+    expect(res.json().error.message).toContain("oddali");
+    expect(store.listCheckIns()).toHaveLength(before);
+    const draft = await post(a, "tok-03", { final: false, pain: 3 });
+    expect(draft.statusCode).toBe(200);
+  });
+
+  it("answers 409 for a second check-in of the same slot", async () => {
+    const a = await make();
+    const ok = { final: true, pain: 2, wellbeing: 4, symptoms: [] };
+    expect((await post(a, "tok-09", ok)).statusCode).toBe(201);
+    expect((await post(a, "tok-09", ok)).statusCode).toBe(409);
+    await advance(a, 2880); // LOW tier: next slot is day 10
+    expect((await post(a, "tok-09", ok)).statusCode).toBe(201);
+  });
+
+  it("stores trends and measurements and shows them as previousCheckIn", async () => {
+    const a = await make();
+    await advance(a, 120);
+    const res = await post(a, "tok-07", {
+      final: true,
+      pain: 4,
+      wellbeing: 3,
+      painTrend: "BETTER",
+      wellbeingTrend: "SAME",
+      symptoms: ["ankle-swelling"],
+      measurements: { weightKg: 82.4 },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().checkIn).toMatchObject({
+      painTrend: "BETTER",
+      wellbeingTrend: "SAME",
+      measurements: { weightKg: 82.4 },
+    });
+    const view = (await a.inject({ url: "/p/tok-07" })).json();
+    expect(view.trendApplies).toBe(true);
+    expect(view.previousCheckIn).toEqual({
+      timestamp: res.json().checkIn.timestamp,
+      pain: 4,
+      wellbeing: 3,
+      painTrend: "BETTER",
+      wellbeingTrend: "SAME",
+      measurements: { weightKg: 82.4 },
+    });
+  });
+
+  it("rejects a measurement id that is not a MEASUREMENT of the protocol", async () => {
+    const a = await make();
+    const res = await post(a, "tok-09", {
+      final: true,
+      pain: 2,
+      wellbeing: 4,
+      symptoms: [],
+      measurements: { weightKg: 70 },
+    });
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.details[0].field).toBe("measurements.weightKg");
+  });
+
+  it("rejects an unknown trend with a Slovenian message", async () => {
+    const a = await make();
+    const res = await post(a, "tok-09", {
+      final: true,
+      pain: 2,
+      wellbeing: 4,
+      symptoms: [],
+      painTrend: "GREAT",
+    });
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.details[0].field).toBe("painTrend");
+  });
+
+  it("says which field is missing in Slovenian", async () => {
+    const a = await make();
+    const res = await post(a, "tok-09", {
+      final: true,
+      wellbeing: 4,
+      symptoms: [],
+    });
+    expect(res.json().error.details).toEqual([
+      { field: "pain", message: "Manjka obvezno polje pain." },
+    ]);
+  });
 });

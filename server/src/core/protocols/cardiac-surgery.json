@@ -2,7 +2,7 @@
   "id": "cardiac-surgery",
   "name": "Operacija srca",
   "riskTier": "HIGH",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "procedureKeywords": [
     "srca",
     "srčn",
@@ -15,86 +15,312 @@
   ],
   "expectedCurve": {
     "pain": [
-      { "day": 1, "value": 6 },
-      { "day": 2, "value": 6 },
-      { "day": 3, "value": 5.5 },
-      { "day": 4, "value": 5 },
-      { "day": 5, "value": 5 },
-      { "day": 6, "value": 4.5 },
-      { "day": 7, "value": 4.5 },
-      { "day": 8, "value": 4 },
-      { "day": 9, "value": 4 },
-      { "day": 10, "value": 3.5 },
-      { "day": 11, "value": 3.5 },
-      { "day": 12, "value": 3.5 },
-      { "day": 13, "value": 3 },
-      { "day": 14, "value": 3 },
-      { "day": 15, "value": 3 },
-      { "day": 16, "value": 2.5 },
-      { "day": 17, "value": 2.5 },
-      { "day": 18, "value": 2.5 },
-      { "day": 19, "value": 2.5 },
-      { "day": 20, "value": 2 },
-      { "day": 21, "value": 2 },
-      { "day": 22, "value": 2 },
-      { "day": 23, "value": 2 },
-      { "day": 24, "value": 2 },
-      { "day": 25, "value": 2 },
-      { "day": 26, "value": 1.5 },
-      { "day": 27, "value": 1.5 },
-      { "day": 28, "value": 1.5 },
-      { "day": 29, "value": 1.5 },
-      { "day": 30, "value": 1.5 }
+      {
+        "day": 1,
+        "value": 6
+      },
+      {
+        "day": 2,
+        "value": 6
+      },
+      {
+        "day": 3,
+        "value": 5.5
+      },
+      {
+        "day": 4,
+        "value": 5
+      },
+      {
+        "day": 5,
+        "value": 5
+      },
+      {
+        "day": 6,
+        "value": 4.5
+      },
+      {
+        "day": 7,
+        "value": 4.5
+      },
+      {
+        "day": 8,
+        "value": 4
+      },
+      {
+        "day": 9,
+        "value": 4
+      },
+      {
+        "day": 10,
+        "value": 3.5
+      },
+      {
+        "day": 11,
+        "value": 3.5
+      },
+      {
+        "day": 12,
+        "value": 3.5
+      },
+      {
+        "day": 13,
+        "value": 3
+      },
+      {
+        "day": 14,
+        "value": 3
+      },
+      {
+        "day": 15,
+        "value": 3
+      },
+      {
+        "day": 16,
+        "value": 2.5
+      },
+      {
+        "day": 17,
+        "value": 2.5
+      },
+      {
+        "day": 18,
+        "value": 2.5
+      },
+      {
+        "day": 19,
+        "value": 2.5
+      },
+      {
+        "day": 20,
+        "value": 2
+      },
+      {
+        "day": 21,
+        "value": 2
+      },
+      {
+        "day": 22,
+        "value": 2
+      },
+      {
+        "day": 23,
+        "value": 2
+      },
+      {
+        "day": 24,
+        "value": 2
+      },
+      {
+        "day": 25,
+        "value": 2
+      },
+      {
+        "day": 26,
+        "value": 1.5
+      },
+      {
+        "day": 27,
+        "value": 1.5
+      },
+      {
+        "day": 28,
+        "value": 1.5
+      },
+      {
+        "day": 29,
+        "value": 1.5
+      },
+      {
+        "day": 30,
+        "value": 1.5
+      }
     ],
     "wellbeing": [
-      { "day": 1, "value": 2.5 },
-      { "day": 2, "value": 2.5 },
-      { "day": 3, "value": 2.5 },
-      { "day": 4, "value": 3 },
-      { "day": 5, "value": 3 },
-      { "day": 6, "value": 3 },
-      { "day": 7, "value": 3 },
-      { "day": 8, "value": 3 },
-      { "day": 9, "value": 3 },
-      { "day": 10, "value": 3 },
-      { "day": 11, "value": 3.5 },
-      { "day": 12, "value": 3.5 },
-      { "day": 13, "value": 3.5 },
-      { "day": 14, "value": 3.5 },
-      { "day": 15, "value": 3.5 },
-      { "day": 16, "value": 3.5 },
-      { "day": 17, "value": 3.5 },
-      { "day": 18, "value": 3.5 },
-      { "day": 19, "value": 3.5 },
-      { "day": 20, "value": 3.5 },
-      { "day": 21, "value": 4 },
-      { "day": 22, "value": 4 },
-      { "day": 23, "value": 4 },
-      { "day": 24, "value": 4 },
-      { "day": 25, "value": 4 },
-      { "day": 26, "value": 4 },
-      { "day": 27, "value": 4 },
-      { "day": 28, "value": 4 },
-      { "day": 29, "value": 4 },
-      { "day": 30, "value": 4 }
+      {
+        "day": 1,
+        "value": 2.5
+      },
+      {
+        "day": 2,
+        "value": 2.5
+      },
+      {
+        "day": 3,
+        "value": 2.5
+      },
+      {
+        "day": 4,
+        "value": 3
+      },
+      {
+        "day": 5,
+        "value": 3
+      },
+      {
+        "day": 6,
+        "value": 3
+      },
+      {
+        "day": 7,
+        "value": 3
+      },
+      {
+        "day": 8,
+        "value": 3
+      },
+      {
+        "day": 9,
+        "value": 3
+      },
+      {
+        "day": 10,
+        "value": 3
+      },
+      {
+        "day": 11,
+        "value": 3.5
+      },
+      {
+        "day": 12,
+        "value": 3.5
+      },
+      {
+        "day": 13,
+        "value": 3.5
+      },
+      {
+        "day": 14,
+        "value": 3.5
+      },
+      {
+        "day": 15,
+        "value": 3.5
+      },
+      {
+        "day": 16,
+        "value": 3.5
+      },
+      {
+        "day": 17,
+        "value": 3.5
+      },
+      {
+        "day": 18,
+        "value": 3.5
+      },
+      {
+        "day": 19,
+        "value": 3.5
+      },
+      {
+        "day": 20,
+        "value": 3.5
+      },
+      {
+        "day": 21,
+        "value": 4
+      },
+      {
+        "day": 22,
+        "value": 4
+      },
+      {
+        "day": 23,
+        "value": 4
+      },
+      {
+        "day": 24,
+        "value": 4
+      },
+      {
+        "day": 25,
+        "value": 4
+      },
+      {
+        "day": 26,
+        "value": 4
+      },
+      {
+        "day": 27,
+        "value": 4
+      },
+      {
+        "day": 28,
+        "value": 4
+      },
+      {
+        "day": 29,
+        "value": 4
+      },
+      {
+        "day": 30,
+        "value": 4
+      }
     ]
   },
   "questions": [
     {
       "id": "chest-pain",
-      "label": "Bolečina ali pritisk v prsih, ki ni od rane"
+      "label": "Bolečina ali pritisk v prsih, ki ni od rane",
+      "kind": "RED_FLAG"
     },
-    { "id": "shortness-of-breath", "label": "Težko dihanje v mirovanju" },
-    { "id": "palpitations", "label": "Hitro ali nepravilno bitje srca" },
-    { "id": "fainting", "label": "Omedlevica ali huda vrtoglavica" },
+    {
+      "id": "shortness-of-breath",
+      "label": "Težko dihanje v mirovanju",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "palpitations",
+      "label": "Hitro ali nepravilno bitje srca",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "fainting",
+      "label": "Omedlevica ali huda vrtoglavica",
+      "kind": "RED_FLAG"
+    },
     {
       "id": "wound-redness",
-      "label": "Rdečina, toplota ali izcedek iz rane na prsnici"
+      "label": "Rdečina, toplota ali izcedek iz rane na prsnici",
+      "kind": "RED_FLAG"
     },
-    { "id": "leg-swelling", "label": "Nova oteklina nog" },
-    { "id": "weight-gain", "label": "Pridobitev več kot 1 kg v enem dnevu" },
-    { "id": "tiredness", "label": "Utrujenost" },
-    { "id": "poor-sleep", "label": "Slab spanec" }
+    {
+      "id": "weight-gain",
+      "label": "Pridobitev več kot 1 kg v enem dnevu",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "leg-swelling",
+      "label": "Nova oteklina nog",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "tiredness",
+      "label": "Utrujenost",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "poor-sleep",
+      "label": "Slab spanec",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "breathless-lying-flat",
+      "label": "Težko dihanje, ko ležim na ravnem",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "ankle-swelling",
+      "label": "Otekli gležnji",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "weightKg",
+      "label": "Telesna teža zjutraj",
+      "kind": "MEASUREMENT",
+      "unit": "kg"
+    }
   ],
   "redFlags": [
     {
@@ -126,14 +352,23 @@
       "symptom": "fainting",
       "severity": "EMERGENCY",
       "action": "Takoj pokličite 112.",
-      "patterns": ["omedlel", "omedlela", "izgubil zavest", "izgubila zavest"]
+      "patterns": [
+        "omedlel",
+        "omedlela",
+        "izgubil zavest",
+        "izgubila zavest"
+      ]
     },
     {
       "id": "cardiac-palpitations",
       "symptom": "palpitations",
       "severity": "CONTACT_DOCTOR",
       "action": "Še danes pokličite zdravnika.",
-      "patterns": ["srce mi razbija", "nepravilno bitje", "srce mi preskakuje"]
+      "patterns": [
+        "srce mi razbija",
+        "nepravilno bitje",
+        "srce mi preskakuje"
+      ]
     },
     {
       "id": "cardiac-wound",
@@ -153,7 +388,11 @@
       "symptom": "weight-gain",
       "severity": "CONTACT_DOCTOR",
       "action": "Še danes pokličite zdravnika.",
-      "patterns": ["pridobil kilogram", "pridobila kilogram", "hitro se redim"]
+      "patterns": [
+        "pridobil kilogram",
+        "pridobila kilogram",
+        "hitro se redim"
+      ]
     }
   ],
   "surveyGraph": {
@@ -164,9 +403,21 @@
         "topic": "onset",
         "question": "Kdaj se je težava začela?",
         "answers": [
-          { "id": "now", "label": "Pravkar", "next": "severity" },
-          { "id": "today", "label": "Danes", "next": "severity" },
-          { "id": "days", "label": "Pred nekaj dnevi", "next": "severity" }
+          {
+            "id": "now",
+            "label": "Pravkar",
+            "next": "severity"
+          },
+          {
+            "id": "today",
+            "label": "Danes",
+            "next": "severity"
+          },
+          {
+            "id": "days",
+            "label": "Pred nekaj dnevi",
+            "next": "severity"
+          }
         ]
       },
       {
@@ -174,9 +425,21 @@
         "topic": "severity",
         "question": "Kako močna je težava?",
         "answers": [
-          { "id": "mild", "label": "Blaga", "next": "modifiers" },
-          { "id": "moderate", "label": "Zmerna", "next": "accompanying" },
-          { "id": "severe", "label": "Zelo močna", "next": "accompanying" }
+          {
+            "id": "mild",
+            "label": "Blaga",
+            "next": "modifiers"
+          },
+          {
+            "id": "moderate",
+            "label": "Zmerna",
+            "next": "accompanying"
+          },
+          {
+            "id": "severe",
+            "label": "Zelo močna",
+            "next": "accompanying"
+          }
         ]
       },
       {
@@ -184,7 +447,11 @@
         "topic": "accompanying",
         "question": "Ali imate še katero od teh težav?",
         "answers": [
-          { "id": "none", "label": "Nič od naštetega", "next": "modifiers" },
+          {
+            "id": "none",
+            "label": "Nič od naštetega",
+            "next": "modifiers"
+          },
           {
             "id": "fever",
             "label": "Vročina ali mrzlica",
@@ -209,18 +476,284 @@
         "topic": "modifiers",
         "question": "Kaj težavo poslabša ali olajša?",
         "answers": [
-          { "id": "effort-worse", "label": "Napor jo poslabša", "next": null },
-          { "id": "rest-better", "label": "Počitek jo olajša", "next": null },
-          { "id": "nothing-helps", "label": "Nič ne pomaga", "next": null }
+          {
+            "id": "effort-worse",
+            "label": "Napor jo poslabša",
+            "next": null
+          },
+          {
+            "id": "rest-better",
+            "label": "Počitek jo olajša",
+            "next": null
+          },
+          {
+            "id": "nothing-helps",
+            "label": "Nič ne pomaga",
+            "next": null
+          }
         ]
       }
     ]
   },
   "guidanceTopics": [
     {
+      "id": "calf-pain",
+      "title": "Bolečina v meči",
+      "keywords": [
+        "meča",
+        "meči",
+        "mečih",
+        "mečo",
+        "mečev",
+        "golen"
+      ],
+      "watchFor": [
+        "Ali je ena meča bolj otekla, topla ali rdeča kot druga",
+        "Ali bolečina v meči ob hoji narašča"
+      ],
+      "warningSigns": [
+        "Enostranska bolečina, oteklina ali toplota v meči",
+        "Bolečina v meči skupaj s težkim dihanjem"
+      ],
+      "whenToCall": "Ob enostranski bolečini ali oteklini v meči še danes pokličite zdravnika, ob težkem dihanju takoj 112."
+    },
+    {
+      "id": "bleeding",
+      "title": "Krvavitev in modrice",
+      "keywords": [
+        "krvav",
+        "krvavi",
+        "krvavitev",
+        "krvavim",
+        "krvi",
+        "modric",
+        "modrica",
+        "modrice"
+      ],
+      "watchFor": [
+        "Ali obveza ali obliž ostaja suh",
+        "Ali se pojavljajo nove modrice brez udarca",
+        "Ali je v urinu ali blatu kri"
+      ],
+      "warningSigns": [
+        "Krvavitev, ki se ne ustavi po 10 minutah pritiska",
+        "Kri v urinu ali črno blato",
+        "Velike nove modrice"
+      ],
+      "whenToCall": "Ob krvavitvi, ki se ne ustavi, ali krvi v urinu ali blatu še danes pokličite zdravnika."
+    },
+    {
+      "id": "fever",
+      "title": "Vročina in telesna temperatura",
+      "keywords": [
+        "vročin",
+        "vročina",
+        "vročino",
+        "vroče",
+        "temperatur",
+        "mrzlic",
+        "mrzlica",
+        "povišan",
+        "toplomer"
+      ],
+      "watchFor": [
+        "Telesno temperaturo vsak dan ob isti uri",
+        "Ali se temperatura dviga iz dneva v dan",
+        "Ali vas zebe ali se tresete"
+      ],
+      "warningSigns": [
+        "Temperatura 38 °C ali več",
+        "Mrzlica s tresenjem",
+        "Vročina skupaj z rdečino ali izcedkom iz rane"
+      ],
+      "whenToCall": "Ob temperaturi 38 °C ali več še danes pokličite zdravnika."
+    },
+    {
+      "id": "nausea-appetite",
+      "title": "Slabost in apetit",
+      "keywords": [
+        "slabost",
+        "slabo mi je",
+        "siljenje na bruhanje",
+        "apetit",
+        "apetita",
+        "teka",
+        "ne morem jesti",
+        "nimam teka",
+        "jesti",
+        "hrane"
+      ],
+      "watchFor": [
+        "Koliko pijete čez dan",
+        "Ali lahko zadržite hrano in pijačo",
+        "Ali se apetit iz dneva v dan vrača"
+      ],
+      "warningSigns": [
+        "Ponavljajoče se bruhanje",
+        "Ne morete zadržati tekočine več kot en dan",
+        "Slabost skupaj z močno bolečino v trebuhu"
+      ],
+      "whenToCall": "Če ne morete zadržati tekočine ali ponavljajoče se bruhate, še danes pokličite zdravnika."
+    },
+    {
+      "id": "driving",
+      "title": "Vožnja avtomobila",
+      "keywords": [
+        "vožnj",
+        "vožnja",
+        "vozim",
+        "voziti",
+        "vozil",
+        "avto",
+        "volan"
+      ],
+      "watchFor": [
+        "Ali lahko brez bolečine hitro pritisnete zavoro",
+        "Ali lahko brez težav obrnete glavo in trup"
+      ],
+      "warningSigns": [
+        "Vrtoglavica ali zaspanost",
+        "Bolečina, ki vas ovira pri hitrih gibih"
+      ],
+      "whenToCall": "Kdaj boste spet lahko vozili, vam pove zdravnik; vprašajte ga ob naslednjem klicu ali obisku."
+    },
+    {
+      "id": "work",
+      "title": "Vrnitev na delo",
+      "keywords": [
+        "služb",
+        "službo",
+        "službi",
+        "delo",
+        "delom",
+        "delat",
+        "v službo",
+        "na delo",
+        "bolniška",
+        "bolniško"
+      ],
+      "watchFor": [
+        "Koliko časa zmorete sedeti, stati ali hoditi brez počitka",
+        "Kako ste utrujeni ob koncu dneva"
+      ],
+      "warningSigns": [
+        "Bolečina ali utrujenost, ki se z dejavnostjo hitro poveča"
+      ],
+      "whenToCall": "Kdaj se lahko vrnete na delo, se dogovorite z zdravnikom, ki vodi vašo bolniško odsotnost."
+    },
+    {
+      "id": "sleep",
+      "title": "Spanje",
+      "keywords": [
+        "spanec",
+        "spanje",
+        "spim",
+        "spati",
+        "zaspati",
+        "spal",
+        "nespečn",
+        "ponoči"
+      ],
+      "watchFor": [
+        "Koliko ur spite in kolikokrat se zbudite",
+        "Ali vas ponoči zbudi bolečina ali težko dihanje"
+      ],
+      "warningSigns": [
+        "Ponoči se zbujate zaradi težkega dihanja",
+        "Zaradi bolečine sploh ne morete spati"
+      ],
+      "whenToCall": "Če vas ponoči zbuja težko dihanje ali močna bolečina, pokličite zdravnika."
+    },
+    {
+      "id": "fatigue",
+      "title": "Utrujenost",
+      "keywords": [
+        "utrujen",
+        "utrujena",
+        "utrujenost",
+        "izčrpan",
+        "izčrpana",
+        "brez moči",
+        "brez energije",
+        "šibk"
+      ],
+      "watchFor": [
+        "Ali je utrujenost iz dneva v dan manjša",
+        "Ali se po počitku počutite bolje"
+      ],
+      "warningSigns": [
+        "Utrujenost, ki se iz dneva v dan veča",
+        "Utrujenost skupaj z vrtoglavico ali težkim dihanjem"
+      ],
+      "whenToCall": "Če se utrujenost veča ali jo spremlja težko dihanje, pokličite zdravnika."
+    },
+    {
+      "id": "pain-movement",
+      "title": "Bolečina pri gibanju",
+      "keywords": [
+        "pri hoji",
+        "ko hodim",
+        "med hojo",
+        "pri gibanju",
+        "ob gibanju",
+        "ko se premikam",
+        "ko vstanem",
+        "pri vstajanju",
+        "ko se obrnem",
+        "pri kašljanju"
+      ],
+      "watchFor": [
+        "Ali je bolečina pri gibanju iz dneva v dan manjša",
+        "Katera gibanja bolečino povečajo",
+        "Ali bolečino povzroča rana na prsnici ob kašljanju ali obračanju"
+      ],
+      "warningSigns": [
+        "Bolečina pri gibanju se nenadoma močno poveča",
+        "Bolečina tudi v mirovanju ne popusti"
+      ],
+      "whenToCall": "Če se bolečina pri gibanju nenadoma poveča ali v mirovanju ne popusti, pokličite zdravnika."
+    },
+    {
+      "id": "swelling",
+      "title": "Oteklina in teža",
+      "keywords": [
+        "oteklina",
+        "otekle",
+        "teža",
+        "kilogram",
+        "otekl",
+        "otekla",
+        "oteklo",
+        "otekel",
+        "oteklino",
+        "otekline",
+        "oteka",
+        "nabreklo",
+        "nabrekla"
+      ],
+      "watchFor": [
+        "Težo vsako jutro ob isti uri",
+        "Ali so gležnji zvečer bolj otekli",
+        "Ali oteklina čez noč upade",
+        "Ali je oteklina na eni ali obeh straneh"
+      ],
+      "warningSigns": [
+        "Več kot 1 kg več v enem dnevu",
+        "Nova oteklina obeh nog",
+        "Oteklina, ki se hitro veča",
+        "Oteklina skupaj z bolečino, toploto ali rdečino"
+      ],
+      "whenToCall": "Ob hitri pridobitvi teže ali novi oteklini še danes pokličite zdravnika."
+    },
+    {
       "id": "wound",
       "title": "Rana na prsnici",
-      "keywords": ["rana", "šiv", "prsnica", "brazgotina"],
+      "keywords": [
+        "rana",
+        "šiv",
+        "prsnica",
+        "brazgotina"
+      ],
       "watchFor": [
         "Barvo in toploto kože okoli rane",
         "Ali se iz rane kaj cedi",
@@ -236,7 +769,13 @@
     {
       "id": "activity",
       "title": "Telesna dejavnost",
-      "keywords": ["hoja", "sprehod", "napor", "dvigovanje", "stopnice"],
+      "keywords": [
+        "hoja",
+        "sprehod",
+        "napor",
+        "dvigovanje",
+        "stopnice"
+      ],
       "watchFor": [
         "Kako hitro se po hoji zadihate",
         "Ali je hoja vsak dan nekoliko lažja"
@@ -248,25 +787,22 @@
       "whenToCall": "Ob bolečini v prsih ali težkem dihanju v mirovanju takoj pokličite 112."
     },
     {
-      "id": "swelling",
-      "title": "Oteklina in teža",
-      "keywords": ["oteklina", "otekle", "teža", "kilogram"],
-      "watchFor": [
-        "Težo vsako jutro ob isti uri",
-        "Ali so gležnji zvečer bolj otekli"
-      ],
-      "warningSigns": [
-        "Več kot 1 kg več v enem dnevu",
-        "Nova oteklina obeh nog"
-      ],
-      "whenToCall": "Ob hitri pridobitvi teže ali novi oteklini še danes pokličite zdravnika."
-    },
-    {
       "id": "heartbeat",
       "title": "Bitje srca",
-      "keywords": ["srce", "utrip", "razbija", "bitje"],
-      "watchFor": ["Ali je bitje srca enakomerno", "Ali se pojavi vrtoglavica"],
-      "warningSigns": ["Hitro ali nepravilno bitje srca", "Omedlevica"],
+      "keywords": [
+        "srce",
+        "utrip",
+        "razbija",
+        "bitje"
+      ],
+      "watchFor": [
+        "Ali je bitje srca enakomerno",
+        "Ali se pojavi vrtoglavica"
+      ],
+      "warningSigns": [
+        "Hitro ali nepravilno bitje srca",
+        "Omedlevica"
+      ],
       "whenToCall": "Ob nepravilnem bitju srca pokličite zdravnika, ob omedlevici takoj 112."
     }
   ],

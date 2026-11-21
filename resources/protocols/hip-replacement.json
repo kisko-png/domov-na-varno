@@ -2,89 +2,683 @@
   "id": "hip-replacement",
   "name": "Zamenjava kolka",
   "riskTier": "MEDIUM",
-  "version": "1.0.0",
-  "procedureKeywords": ["kolk", "kolka", "endoproteza kolka", "hip replacement", "total hip", "tep kolka"],
+  "version": "1.1.0",
+  "procedureKeywords": [
+    "kolk",
+    "kolka",
+    "endoproteza kolka",
+    "hip replacement",
+    "total hip",
+    "tep kolka"
+  ],
   "expectedCurve": {
     "pain": [
-      { "day": 1, "value": 6 }, { "day": 2, "value": 6 }, { "day": 3, "value": 5 }, { "day": 4, "value": 5 },
-      { "day": 5, "value": 4 }, { "day": 6, "value": 4 }, { "day": 7, "value": 3.5 }, { "day": 8, "value": 3 },
-      { "day": 9, "value": 3 }, { "day": 10, "value": 2.5 }, { "day": 11, "value": 2.5 }, { "day": 12, "value": 2 },
-      { "day": 13, "value": 2 }, { "day": 14, "value": 2 }
+      {
+        "day": 1,
+        "value": 6
+      },
+      {
+        "day": 2,
+        "value": 6
+      },
+      {
+        "day": 3,
+        "value": 5
+      },
+      {
+        "day": 4,
+        "value": 5
+      },
+      {
+        "day": 5,
+        "value": 4
+      },
+      {
+        "day": 6,
+        "value": 4
+      },
+      {
+        "day": 7,
+        "value": 3.5
+      },
+      {
+        "day": 8,
+        "value": 3
+      },
+      {
+        "day": 9,
+        "value": 3
+      },
+      {
+        "day": 10,
+        "value": 2.5
+      },
+      {
+        "day": 11,
+        "value": 2.5
+      },
+      {
+        "day": 12,
+        "value": 2
+      },
+      {
+        "day": 13,
+        "value": 2
+      },
+      {
+        "day": 14,
+        "value": 2
+      }
     ],
     "wellbeing": [
-      { "day": 1, "value": 3 }, { "day": 2, "value": 3 }, { "day": 3, "value": 3 }, { "day": 4, "value": 3 },
-      { "day": 5, "value": 3.5 }, { "day": 6, "value": 3.5 }, { "day": 7, "value": 3.5 }, { "day": 8, "value": 3.5 },
-      { "day": 9, "value": 4 }, { "day": 10, "value": 4 }, { "day": 11, "value": 4 }, { "day": 12, "value": 4 },
-      { "day": 13, "value": 4 }, { "day": 14, "value": 4 }
+      {
+        "day": 1,
+        "value": 3
+      },
+      {
+        "day": 2,
+        "value": 3
+      },
+      {
+        "day": 3,
+        "value": 3
+      },
+      {
+        "day": 4,
+        "value": 3
+      },
+      {
+        "day": 5,
+        "value": 3.5
+      },
+      {
+        "day": 6,
+        "value": 3.5
+      },
+      {
+        "day": 7,
+        "value": 3.5
+      },
+      {
+        "day": 8,
+        "value": 3.5
+      },
+      {
+        "day": 9,
+        "value": 4
+      },
+      {
+        "day": 10,
+        "value": 4
+      },
+      {
+        "day": 11,
+        "value": 4
+      },
+      {
+        "day": 12,
+        "value": 4
+      },
+      {
+        "day": 13,
+        "value": 4
+      },
+      {
+        "day": 14,
+        "value": 4
+      }
     ]
   },
   "questions": [
-    { "id": "shortness-of-breath", "label": "Težko dihanje ali zasoplost" },
-    { "id": "chest-pain", "label": "Bolečina v prsih" },
-    { "id": "calf-pain-swelling", "label": "Bolečina ali oteklina v mečih" },
-    { "id": "wound-redness", "label": "Rdečina, toplota ali izcedek iz rane" },
-    { "id": "heavy-bleeding", "label": "Močna krvavitev" },
-    { "id": "cannot-bear-weight", "label": "Nenadoma ne morem stopiti na nogo" },
-    { "id": "tiredness", "label": "Utrujenost" },
-    { "id": "poor-sleep", "label": "Slab spanec" },
-    { "id": "mild-swelling", "label": "Blaga oteklina okoli kolka" }
+    {
+      "id": "shortness-of-breath",
+      "label": "Težko dihanje ali zasoplost",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "chest-pain",
+      "label": "Bolečina v prsih",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "calf-pain-swelling",
+      "label": "Bolečina ali oteklina v mečih",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "wound-redness",
+      "label": "Rdečina, toplota ali izcedek iz rane",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "heavy-bleeding",
+      "label": "Močna krvavitev",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "cannot-bear-weight",
+      "label": "Nenadoma ne morem stopiti na nogo",
+      "kind": "RED_FLAG"
+    },
+    {
+      "id": "tiredness",
+      "label": "Utrujenost",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "poor-sleep",
+      "label": "Slab spanec",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "mild-swelling",
+      "label": "Blaga oteklina okoli kolka",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "limited-weight-bearing",
+      "label": "Nogo lahko obremenim le delno",
+      "kind": "SYMPTOM"
+    },
+    {
+      "id": "walks-with-crutches",
+      "label": "Pri hoji potrebujem bergle",
+      "kind": "SYMPTOM"
+    }
   ],
   "redFlags": [
-    { "id": "hip-sob", "symptom": "shortness-of-breath", "severity": "EMERGENCY", "action": "Takoj pokličite 112.", "patterns": ["težko diham", "ne morem dihati", "zasoplost", "zmanjkuje mi zraka"] },
-    { "id": "hip-chest-pain", "symptom": "chest-pain", "severity": "EMERGENCY", "action": "Takoj pokličite 112.", "patterns": ["bolečina v prsih", "boli me v prsih", "tišči me v prsih"] },
-    { "id": "hip-calf", "symptom": "calf-pain-swelling", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["boli me meča", "otekla meča", "bolečina v meči", "oteklina v meči"] },
-    { "id": "hip-wound", "symptom": "wound-redness", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["rana je rdeča", "rana je topla", "izcedek iz rane", "rana se cedi", "gnoj"] },
-    { "id": "hip-bleeding", "symptom": "heavy-bleeding", "severity": "CONTACT_DOCTOR", "action": "Pritisnite na mesto krvavitve in pokličite zdravnika.", "patterns": ["močno krvavim", "krvavitev", "kri teče"] },
-    { "id": "hip-weight", "symptom": "cannot-bear-weight", "severity": "CONTACT_DOCTOR", "action": "Ne obremenjujte noge in pokličite zdravnika.", "patterns": ["ne morem stopiti", "ne morem na nogo", "noga me ne drži"] }
+    {
+      "id": "hip-sob",
+      "symptom": "shortness-of-breath",
+      "severity": "EMERGENCY",
+      "action": "Takoj pokličite 112.",
+      "patterns": [
+        "težko diham",
+        "ne morem dihati",
+        "zasoplost",
+        "zmanjkuje mi zraka"
+      ]
+    },
+    {
+      "id": "hip-chest-pain",
+      "symptom": "chest-pain",
+      "severity": "EMERGENCY",
+      "action": "Takoj pokličite 112.",
+      "patterns": [
+        "bolečina v prsih",
+        "boli me v prsih",
+        "tišči me v prsih"
+      ]
+    },
+    {
+      "id": "hip-calf",
+      "symptom": "calf-pain-swelling",
+      "severity": "CONTACT_DOCTOR",
+      "action": "Še danes pokličite zdravnika.",
+      "patterns": [
+        "boli me meča",
+        "otekla meča",
+        "bolečina v meči",
+        "oteklina v meči"
+      ]
+    },
+    {
+      "id": "hip-wound",
+      "symptom": "wound-redness",
+      "severity": "CONTACT_DOCTOR",
+      "action": "Še danes pokličite zdravnika.",
+      "patterns": [
+        "rana je rdeča",
+        "rana je topla",
+        "izcedek iz rane",
+        "rana se cedi",
+        "gnoj"
+      ]
+    },
+    {
+      "id": "hip-bleeding",
+      "symptom": "heavy-bleeding",
+      "severity": "CONTACT_DOCTOR",
+      "action": "Pritisnite na mesto krvavitve in pokličite zdravnika.",
+      "patterns": [
+        "močno krvavim",
+        "krvavitev",
+        "kri teče"
+      ]
+    },
+    {
+      "id": "hip-weight",
+      "symptom": "cannot-bear-weight",
+      "severity": "CONTACT_DOCTOR",
+      "action": "Ne obremenjujte noge in pokličite zdravnika.",
+      "patterns": [
+        "ne morem stopiti",
+        "ne morem na nogo",
+        "noga me ne drži"
+      ]
+    }
   ],
   "surveyGraph": {
     "start": "onset",
     "nodes": [
-      { "id": "onset", "topic": "onset", "question": "Kdaj se je težava začela?", "answers": [
-        { "id": "today", "label": "Danes", "next": "severity" },
-        { "id": "days", "label": "Pred nekaj dnevi", "next": "severity" },
-        { "id": "since-surgery", "label": "Od operacije", "next": "severity" }
-      ] },
-      { "id": "severity", "topic": "severity", "question": "Kako močna je težava?", "answers": [
-        { "id": "mild", "label": "Blaga", "next": "modifiers" },
-        { "id": "moderate", "label": "Zmerna", "next": "accompanying" },
-        { "id": "severe", "label": "Zelo močna", "next": "accompanying" }
-      ] },
-      { "id": "accompanying", "topic": "accompanying", "question": "Ali imate še katero od teh težav?", "answers": [
-        { "id": "none", "label": "Nič od naštetega", "next": "modifiers" },
-        { "id": "fever", "label": "Vročina ali mrzlica", "next": "modifiers" },
-        { "id": "calf", "label": "Bolečina ali oteklina v meči", "next": null, "redFlag": "hip-calf" },
-        { "id": "breath", "label": "Težko dihanje", "next": null, "redFlag": "hip-sob" }
-      ] },
-      { "id": "modifiers", "topic": "modifiers", "question": "Kaj težavo poslabša ali olajša?", "answers": [
-        { "id": "movement-worse", "label": "Gibanje jo poslabša", "next": null },
-        { "id": "rest-better", "label": "Počitek jo olajša", "next": null },
-        { "id": "nothing-helps", "label": "Nič ne pomaga", "next": null }
-      ] }
+      {
+        "id": "onset",
+        "topic": "onset",
+        "question": "Kdaj se je težava začela?",
+        "answers": [
+          {
+            "id": "today",
+            "label": "Danes",
+            "next": "severity"
+          },
+          {
+            "id": "days",
+            "label": "Pred nekaj dnevi",
+            "next": "severity"
+          },
+          {
+            "id": "since-surgery",
+            "label": "Od operacije",
+            "next": "severity"
+          }
+        ]
+      },
+      {
+        "id": "severity",
+        "topic": "severity",
+        "question": "Kako močna je težava?",
+        "answers": [
+          {
+            "id": "mild",
+            "label": "Blaga",
+            "next": "modifiers"
+          },
+          {
+            "id": "moderate",
+            "label": "Zmerna",
+            "next": "accompanying"
+          },
+          {
+            "id": "severe",
+            "label": "Zelo močna",
+            "next": "accompanying"
+          }
+        ]
+      },
+      {
+        "id": "accompanying",
+        "topic": "accompanying",
+        "question": "Ali imate še katero od teh težav?",
+        "answers": [
+          {
+            "id": "none",
+            "label": "Nič od naštetega",
+            "next": "modifiers"
+          },
+          {
+            "id": "fever",
+            "label": "Vročina ali mrzlica",
+            "next": "modifiers"
+          },
+          {
+            "id": "calf",
+            "label": "Bolečina ali oteklina v meči",
+            "next": null,
+            "redFlag": "hip-calf"
+          },
+          {
+            "id": "breath",
+            "label": "Težko dihanje",
+            "next": null,
+            "redFlag": "hip-sob"
+          }
+        ]
+      },
+      {
+        "id": "modifiers",
+        "topic": "modifiers",
+        "question": "Kaj težavo poslabša ali olajša?",
+        "answers": [
+          {
+            "id": "movement-worse",
+            "label": "Gibanje jo poslabša",
+            "next": null
+          },
+          {
+            "id": "rest-better",
+            "label": "Počitek jo olajša",
+            "next": null
+          },
+          {
+            "id": "nothing-helps",
+            "label": "Nič ne pomaga",
+            "next": null
+          }
+        ]
+      }
     ]
   },
   "guidanceTopics": [
-    { "id": "wound", "title": "Rana", "keywords": ["rana", "šiv", "obliž", "brazgotina"],
-      "watchFor": ["Barvo in toploto kože okoli rane", "Ali se iz rane kaj cedi"],
-      "warningSigns": ["Rdečina, ki se širi", "Rana je topla ali se iz nje cedi", "Vročina nad 38 °C"],
-      "whenToCall": "Če opazite katerega od opozorilnih znakov, še danes pokličite zdravnika." },
-    { "id": "pain", "title": "Bolečina", "keywords": ["boli", "bolečina", "bolečine"],
-      "watchFor": ["Kako se bolečina spreminja iz dneva v dan", "Ali je bolečina večja po gibanju"],
-      "warningSigns": ["Bolečina se nenadoma močno poveča", "Ne morete stopiti na nogo"],
-      "whenToCall": "Če se bolečina nenadoma poveča ali ne morete stopiti na nogo, pokličite zdravnika." },
-    { "id": "swelling", "title": "Oteklina", "keywords": ["oteklina", "otekla", "oteklo", "nabreklo"],
-      "watchFor": ["Ali oteklina čez noč upade", "Ali je oteklina samo okoli kolka ali tudi v meči"],
-      "warningSigns": ["Bolečina ali oteklina v meči", "Oteklina, ki se hitro veča"],
-      "whenToCall": "Če je oteklina v meči ali se hitro veča, še danes pokličite zdravnika." },
-    { "id": "mobility", "title": "Gibanje", "keywords": ["hoja", "hodim", "bergle", "stopnice", "gibanje"],
-      "watchFor": ["Koliko lahko hodite brez počitka", "Ali hojo prenašate bolje kot prejšnji dan"],
-      "warningSigns": ["Nenadoma ne morete stopiti na nogo", "Noga je videti krajša ali obrnjena"],
-      "whenToCall": "Ob nenadni nezmožnosti hoje pokličite zdravnika." }
+    {
+      "id": "calf-pain",
+      "title": "Bolečina v meči",
+      "keywords": [
+        "meča",
+        "meči",
+        "mečih",
+        "mečo",
+        "mečev",
+        "golen"
+      ],
+      "watchFor": [
+        "Ali je ena meča bolj otekla, topla ali rdeča kot druga",
+        "Ali bolečina v meči ob hoji narašča"
+      ],
+      "warningSigns": [
+        "Enostranska bolečina, oteklina ali toplota v meči",
+        "Bolečina v meči skupaj s težkim dihanjem"
+      ],
+      "whenToCall": "Ob enostranski bolečini ali oteklini v meči še danes pokličite zdravnika, ob težkem dihanju takoj 112."
+    },
+    {
+      "id": "bleeding",
+      "title": "Krvavitev in modrice",
+      "keywords": [
+        "krvav",
+        "krvavi",
+        "krvavitev",
+        "krvavim",
+        "krvi",
+        "modric",
+        "modrica",
+        "modrice"
+      ],
+      "watchFor": [
+        "Ali obveza ali obliž ostaja suh",
+        "Ali se pojavljajo nove modrice brez udarca",
+        "Ali je v urinu ali blatu kri"
+      ],
+      "warningSigns": [
+        "Krvavitev, ki se ne ustavi po 10 minutah pritiska",
+        "Kri v urinu ali črno blato",
+        "Velike nove modrice"
+      ],
+      "whenToCall": "Ob krvavitvi, ki se ne ustavi, ali krvi v urinu ali blatu še danes pokličite zdravnika."
+    },
+    {
+      "id": "fever",
+      "title": "Vročina in telesna temperatura",
+      "keywords": [
+        "vročin",
+        "vročina",
+        "vročino",
+        "vroče",
+        "temperatur",
+        "mrzlic",
+        "mrzlica",
+        "povišan",
+        "toplomer"
+      ],
+      "watchFor": [
+        "Telesno temperaturo vsak dan ob isti uri",
+        "Ali se temperatura dviga iz dneva v dan",
+        "Ali vas zebe ali se tresete"
+      ],
+      "warningSigns": [
+        "Temperatura 38 °C ali več",
+        "Mrzlica s tresenjem",
+        "Vročina skupaj z rdečino ali izcedkom iz rane"
+      ],
+      "whenToCall": "Ob temperaturi 38 °C ali več še danes pokličite zdravnika."
+    },
+    {
+      "id": "nausea-appetite",
+      "title": "Slabost in apetit",
+      "keywords": [
+        "slabost",
+        "slabo mi je",
+        "siljenje na bruhanje",
+        "apetit",
+        "apetita",
+        "teka",
+        "ne morem jesti",
+        "nimam teka",
+        "jesti",
+        "hrane"
+      ],
+      "watchFor": [
+        "Koliko pijete čez dan",
+        "Ali lahko zadržite hrano in pijačo",
+        "Ali se apetit iz dneva v dan vrača"
+      ],
+      "warningSigns": [
+        "Ponavljajoče se bruhanje",
+        "Ne morete zadržati tekočine več kot en dan",
+        "Slabost skupaj z močno bolečino v trebuhu"
+      ],
+      "whenToCall": "Če ne morete zadržati tekočine ali ponavljajoče se bruhate, še danes pokličite zdravnika."
+    },
+    {
+      "id": "driving",
+      "title": "Vožnja avtomobila",
+      "keywords": [
+        "vožnj",
+        "vožnja",
+        "vozim",
+        "voziti",
+        "vozil",
+        "avto",
+        "volan"
+      ],
+      "watchFor": [
+        "Ali lahko brez bolečine hitro pritisnete zavoro",
+        "Ali lahko brez težav obrnete glavo in trup"
+      ],
+      "warningSigns": [
+        "Vrtoglavica ali zaspanost",
+        "Bolečina, ki vas ovira pri hitrih gibih"
+      ],
+      "whenToCall": "Kdaj boste spet lahko vozili, vam pove zdravnik; vprašajte ga ob naslednjem klicu ali obisku."
+    },
+    {
+      "id": "work",
+      "title": "Vrnitev na delo",
+      "keywords": [
+        "služb",
+        "službo",
+        "službi",
+        "delo",
+        "delom",
+        "delat",
+        "v službo",
+        "na delo",
+        "bolniška",
+        "bolniško"
+      ],
+      "watchFor": [
+        "Koliko časa zmorete sedeti, stati ali hoditi brez počitka",
+        "Kako ste utrujeni ob koncu dneva"
+      ],
+      "warningSigns": [
+        "Bolečina ali utrujenost, ki se z dejavnostjo hitro poveča"
+      ],
+      "whenToCall": "Kdaj se lahko vrnete na delo, se dogovorite z zdravnikom, ki vodi vašo bolniško odsotnost."
+    },
+    {
+      "id": "sleep",
+      "title": "Spanje",
+      "keywords": [
+        "spanec",
+        "spanje",
+        "spim",
+        "spati",
+        "zaspati",
+        "spal",
+        "nespečn",
+        "ponoči"
+      ],
+      "watchFor": [
+        "Koliko ur spite in kolikokrat se zbudite",
+        "Ali vas ponoči zbudi bolečina ali težko dihanje"
+      ],
+      "warningSigns": [
+        "Ponoči se zbujate zaradi težkega dihanja",
+        "Zaradi bolečine sploh ne morete spati"
+      ],
+      "whenToCall": "Če vas ponoči zbuja težko dihanje ali močna bolečina, pokličite zdravnika."
+    },
+    {
+      "id": "fatigue",
+      "title": "Utrujenost",
+      "keywords": [
+        "utrujen",
+        "utrujena",
+        "utrujenost",
+        "izčrpan",
+        "izčrpana",
+        "brez moči",
+        "brez energije",
+        "šibk"
+      ],
+      "watchFor": [
+        "Ali je utrujenost iz dneva v dan manjša",
+        "Ali se po počitku počutite bolje"
+      ],
+      "warningSigns": [
+        "Utrujenost, ki se iz dneva v dan veča",
+        "Utrujenost skupaj z vrtoglavico ali težkim dihanjem"
+      ],
+      "whenToCall": "Če se utrujenost veča ali jo spremlja težko dihanje, pokličite zdravnika."
+    },
+    {
+      "id": "pain-movement",
+      "title": "Bolečina pri gibanju",
+      "keywords": [
+        "pri hoji",
+        "ko hodim",
+        "med hojo",
+        "pri gibanju",
+        "ob gibanju",
+        "ko se premikam",
+        "ko vstanem",
+        "pri vstajanju",
+        "ko se obrnem",
+        "pri kašljanju"
+      ],
+      "watchFor": [
+        "Ali je bolečina pri gibanju iz dneva v dan manjša",
+        "Katera gibanja bolečino povečajo",
+        "Ali lahko obremenite operirano nogo toliko kot prejšnji dan"
+      ],
+      "warningSigns": [
+        "Bolečina pri gibanju se nenadoma močno poveča",
+        "Bolečina tudi v mirovanju ne popusti"
+      ],
+      "whenToCall": "Če se bolečina pri gibanju nenadoma poveča ali v mirovanju ne popusti, pokličite zdravnika."
+    },
+    {
+      "id": "swelling",
+      "title": "Oteklina",
+      "keywords": [
+        "oteklina",
+        "otekla",
+        "oteklo",
+        "nabreklo",
+        "otekl",
+        "otekle",
+        "otekel",
+        "oteklino",
+        "otekline",
+        "oteka",
+        "nabrekla"
+      ],
+      "watchFor": [
+        "Ali oteklina čez noč upade",
+        "Ali je oteklina samo okoli kolka ali tudi v meči",
+        "Ali je oteklina na eni ali obeh straneh"
+      ],
+      "warningSigns": [
+        "Bolečina ali oteklina v meči",
+        "Oteklina, ki se hitro veča",
+        "Oteklina skupaj z bolečino, toploto ali rdečino"
+      ],
+      "whenToCall": "Če je oteklina v meči ali se hitro veča, še danes pokličite zdravnika."
+    },
+    {
+      "id": "wound",
+      "title": "Rana",
+      "keywords": [
+        "rana",
+        "šiv",
+        "obliž",
+        "brazgotina"
+      ],
+      "watchFor": [
+        "Barvo in toploto kože okoli rane",
+        "Ali se iz rane kaj cedi"
+      ],
+      "warningSigns": [
+        "Rdečina, ki se širi",
+        "Rana je topla ali se iz nje cedi",
+        "Vročina nad 38 °C"
+      ],
+      "whenToCall": "Če opazite katerega od opozorilnih znakov, še danes pokličite zdravnika."
+    },
+    {
+      "id": "pain",
+      "title": "Bolečina",
+      "keywords": [
+        "boli",
+        "bolečina",
+        "bolečine"
+      ],
+      "watchFor": [
+        "Kako se bolečina spreminja iz dneva v dan",
+        "Ali je bolečina večja po gibanju"
+      ],
+      "warningSigns": [
+        "Bolečina se nenadoma močno poveča",
+        "Ne morete stopiti na nogo"
+      ],
+      "whenToCall": "Če se bolečina nenadoma poveča ali ne morete stopiti na nogo, pokličite zdravnika."
+    },
+    {
+      "id": "mobility",
+      "title": "Gibanje",
+      "keywords": [
+        "hoja",
+        "hodim",
+        "bergle",
+        "stopnice",
+        "gibanje"
+      ],
+      "watchFor": [
+        "Koliko lahko hodite brez počitka",
+        "Ali hojo prenašate bolje kot prejšnji dan"
+      ],
+      "warningSigns": [
+        "Nenadoma ne morete stopiti na nogo",
+        "Noga je videti krajša ali obrnjena"
+      ],
+      "whenToCall": "Ob nenadni nezmožnosti hoje pokličite zdravnika."
+    }
   ],
   "sources": [
-    { "title": "NHS - Hip replacement: Recovery", "url": "https://www.nhs.uk/conditions/hip-replacement/recovery/" },
-    { "title": "NHS - Hip replacement: Risks", "url": "https://www.nhs.uk/conditions/hip-replacement/risks/" },
-    { "title": "AAOS OrthoInfo - Total Hip Replacement", "url": "https://orthoinfo.aaos.org/en/treatment/total-hip-replacement/" },
-    { "title": "MedlinePlus - Taking care of your new hip joint", "url": "https://medlineplus.gov/ency/patientinstructions/000171.htm" }
+    {
+      "title": "NHS - Hip replacement: Recovery",
+      "url": "https://www.nhs.uk/conditions/hip-replacement/recovery/"
+    },
+    {
+      "title": "NHS - Hip replacement: Risks",
+      "url": "https://www.nhs.uk/conditions/hip-replacement/risks/"
+    },
+    {
+      "title": "AAOS OrthoInfo - Total Hip Replacement",
+      "url": "https://orthoinfo.aaos.org/en/treatment/total-hip-replacement/"
+    },
+    {
+      "title": "MedlinePlus - Taking care of your new hip joint",
+      "url": "https://medlineplus.gov/ency/patientinstructions/000171.htm"
+    }
   ]
 }

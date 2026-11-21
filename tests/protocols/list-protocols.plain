@@ -1,0 +1,9 @@
+---
+module: protocols
+func_id: list-protocols
+---
+
+***conformance tests***
+
+# questions-red-flags-first
+In every :Protocol: of `listProtocols()`, no `RED_FLAG` question comes after a `SYMPTOM` or `MEASUREMENT` one, and no `SYMPTOM` after a `MEASUREMENT` one; the cardiac surgery :Protocol: has the question `weightKg` of `kind` `MEASUREMENT` with `unit` `kg`.

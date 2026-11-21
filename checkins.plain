@@ -14,6 +14,7 @@ description: Step 3 - append-only storage and the check-in service.
 
 # sim-clock
 `GET /sim/now` returns `200` with `{ now, offsetMinutes }` of :SimNow:; `POST /sim/advance` with `{ minutes }` adds `minutes` to the offset and returns `200` with the new `{ now, offsetMinutes }`.
+- Without `minutes`, or without a body, it adds 1440.
 
 # seed-store
 When the service starts with an empty :Db:, :Store: gets `buildSeed(now)` for the :SimNow: of the start.
@@ -27,6 +28,7 @@ A patient route reads the :Patient: from the `X-Patient-Token` header; a missing
 `GET /p/{token}` returns `200` with a `PatientView` of :DomovApi: of the :Patient: with that `accessToken`, or `404` with `not_found`.
 - `dayAfterDischarge` is that of :SimNow:; `protocol` its :Protocol:; `doctorPhone` the `doctorContactPhone` of its :Report:; `patientInstructions` its :PatientInstructions:; `currentSlot` its :CurrentSlot:; `demoNotice` the :DemoNotice:.
 - `draft` is its :Draft: of its :CurrentSlot:, when there is one; `pendingReminder` its latest :Reminder: sent after its latest :CheckIn:, when there is one.
+- `trendApplies` is whether it has a :CheckIn:; `previousCheckIn` holds the `timestamp`, `pain`, `wellbeing`, `painTrend`, `wellbeingTrend` and `measurements` of its latest :CheckIn:, when it has one.
 
 # red-flag-preview
 `POST /checkins/preview` with `{ symptoms }` returns `200` with the :RedFlagWarning: of those ids for the :Patient: of the token.
@@ -37,7 +39,8 @@ A patient route reads the :Patient: from the `X-Patient-Token` header; a missing
 
 # submit-check-in
 `POST /checkins` with `final` `true` stores a :CheckIn: and its `assessCheckIn` result, and returns `201` with a `CheckInResult` of :DomovApi:.
-- Without `wellbeing`, `pain` or `symptoms`, it returns `422` with `validation_error` and stores nothing.
+- Without `wellbeing`, `pain` or `symptoms`, it returns `422` with `validation_error` and stores nothing; `painTrend`, `wellbeingTrend` and `measurements` are optional, on the first :CheckIn: too.
+- When the :Patient: has a :CheckIn: and its :CurrentSlot: is not yet due, it returns `409` with `already_submitted` and a Slovenian message, and stores nothing.
 - The :CheckIn: has id `chk-<n>`, n counting from 1, `timestamp` :SimNow:, the :DayAfterDischarge: of :SimNow:, the :Protocol:'s `version` as `protocolVersion`, and `filledBy` `PATIENT` when not given; its :History: is the :Patient:'s earlier :CheckIn: items.
 - `showContactDoctor`, `showEmergency112` and `doctorPhone` are those of the :RedFlagWarning: of its `symptoms`; `alertCreated` is whether an :Alert: was made.
 - `comparison` holds its `pain` and `wellbeing` as `actual` beside the `expectedForDay` values of its day as `expected`, with `painTolerance` as the pain `tolerance` and 2 as the wellbeing `tolerance`.

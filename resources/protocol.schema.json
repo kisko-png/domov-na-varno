@@ -5,65 +5,204 @@
   "description": "One monitoring protocol as stored in resources/protocols/. checkInSchedule, durationDays and painTolerance are not in the file: they come from the protocol's riskTier in resources/risk-tiers.yaml. All clinical numbers are DEMO VALUES. User-facing text is Slovenian.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "name", "riskTier", "version", "procedureKeywords", "expectedCurve", "questions", "redFlags", "surveyGraph", "guidanceTopics", "sources"],
+  "required": [
+    "id",
+    "name",
+    "riskTier",
+    "version",
+    "procedureKeywords",
+    "expectedCurve",
+    "questions",
+    "redFlags",
+    "surveyGraph",
+    "guidanceTopics",
+    "sources"
+  ],
   "properties": {
-    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-    "name": { "type": "string" },
-    "riskTier": { "enum": ["HIGH", "MEDIUM", "LOW"] },
-    "version": { "type": "string", "description": "Semantic version; recorded on every CheckIn as protocolVersion." },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "riskTier": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version; recorded on every CheckIn as protocolVersion."
+    },
     "procedureKeywords": {
-      "type": "array", "minItems": 1, "items": { "type": "string" },
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
       "description": "Lowercase words or phrases that, found in a Report's procedure, select this protocol."
     },
     "expectedCurve": {
-      "type": "object", "additionalProperties": false, "required": ["pain", "wellbeing"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pain",
+        "wellbeing"
+      ],
       "properties": {
-        "pain": { "$ref": "#/$defs/curve", "description": "Expected pain 0-10 for each day 1..durationDays." },
-        "wellbeing": { "$ref": "#/$defs/curve", "description": "Expected wellbeing 1-5 for each day 1..durationDays." }
+        "pain": {
+          "$ref": "#/$defs/curve",
+          "description": "Expected pain 0-10 for each day 1..durationDays."
+        },
+        "wellbeing": {
+          "$ref": "#/$defs/curve",
+          "description": "Expected wellbeing 1-5 for each day 1..durationDays."
+        }
       }
     },
     "questions": {
-      "type": "array", "minItems": 1,
-      "description": "The daily check-in symptom checklist.",
+      "type": "array",
+      "minItems": 1,
+      "description": "The daily check-in questions. kind RED_FLAG: a symptom a redFlags entry names; SYMPTOM: any other symptom to tick; MEASUREMENT: a number to enter, in unit. Ordered RED_FLAG, then SYMPTOM, then MEASUREMENT.",
       "items": {
-        "type": "object", "additionalProperties": false, "required": ["id", "label"],
-        "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "RED_FLAG",
+              "SYMPTOM",
+              "MEASUREMENT"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "description": "Only for MEASUREMENT, e.g. kg."
+          }
+        }
       }
     },
     "redFlags": {
-      "type": "array", "minItems": 1,
+      "type": "array",
+      "minItems": 1,
       "items": {
-        "type": "object", "additionalProperties": false, "required": ["id", "symptom", "severity", "action"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "symptom",
+          "severity",
+          "action"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "symptom": { "type": "string", "description": "The id of an entry of questions." },
-          "severity": { "enum": ["CONTACT_DOCTOR", "EMERGENCY"] },
-          "action": { "type": "string" },
-          "patterns": { "type": "array", "items": { "type": "string" }, "description": "Lowercase Slovenian phrases that name this red flag in a chat message." }
+          "id": {
+            "type": "string"
+          },
+          "symptom": {
+            "type": "string",
+            "description": "The id of an entry of questions."
+          },
+          "severity": {
+            "enum": [
+              "CONTACT_DOCTOR",
+              "EMERGENCY"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lowercase Slovenian phrases that name this red flag in a chat message."
+          }
         }
       }
     },
     "surveyGraph": {
-      "type": "object", "additionalProperties": false, "required": ["start", "nodes"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "nodes"
+      ],
       "properties": {
-        "start": { "type": "string", "description": "The id of the first node." },
+        "start": {
+          "type": "string",
+          "description": "The id of the first node."
+        },
         "nodes": {
-          "type": "array", "minItems": 1,
+          "type": "array",
+          "minItems": 1,
           "items": {
-            "type": "object", "additionalProperties": false, "required": ["id", "topic", "question", "answers"],
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "topic",
+              "question",
+              "answers"
+            ],
             "properties": {
-              "id": { "type": "string" },
-              "topic": { "enum": ["onset", "severity", "accompanying", "modifiers"] },
-              "question": { "type": "string" },
+              "id": {
+                "type": "string"
+              },
+              "topic": {
+                "enum": [
+                  "onset",
+                  "severity",
+                  "accompanying",
+                  "modifiers"
+                ]
+              },
+              "question": {
+                "type": "string"
+              },
               "answers": {
-                "type": "array", "minItems": 1,
+                "type": "array",
+                "minItems": 1,
                 "items": {
-                  "type": "object", "additionalProperties": false, "required": ["id", "label", "next"],
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "label",
+                    "next"
+                  ],
                   "properties": {
-                    "id": { "type": "string" },
-                    "label": { "type": "string" },
-                    "next": { "type": ["string", "null"], "description": "The id of the next node; null ends the survey." },
-                    "redFlag": { "type": "string", "description": "The id of a redFlags entry; choosing this answer interrupts the survey." }
+                    "id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "next": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The id of the next node; null ends the survey."
+                    },
+                    "redFlag": {
+                      "type": "string",
+                      "description": "The id of a redFlags entry; choosing this answer interrupts the survey."
+                    }
                   }
                 }
               }
@@ -73,33 +212,92 @@
       }
     },
     "guidanceTopics": {
-      "type": "array", "minItems": 1,
+      "type": "array",
+      "minItems": 1,
       "items": {
-        "type": "object", "additionalProperties": false, "required": ["id", "title", "keywords", "watchFor", "warningSigns", "whenToCall"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "keywords",
+          "watchFor",
+          "warningSigns",
+          "whenToCall"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "title": { "type": "string" },
-          "keywords": { "type": "array", "items": { "type": "string" } },
-          "watchFor": { "type": "array", "items": { "type": "string" } },
-          "warningSigns": { "type": "array", "items": { "type": "string" } },
-          "whenToCall": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "watchFor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warningSigns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "whenToCall": {
+            "type": "string"
+          }
         }
       }
     },
     "sources": {
-      "type": "array", "minItems": 2,
+      "type": "array",
+      "minItems": 2,
       "items": {
-        "type": "object", "additionalProperties": false, "required": ["title", "url"],
-        "properties": { "title": { "type": "string" }, "url": { "type": "string", "format": "uri" } }
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "url"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
       }
     }
   },
   "$defs": {
     "curve": {
-      "type": "array", "minItems": 1,
+      "type": "array",
+      "minItems": 1,
       "items": {
-        "type": "object", "additionalProperties": false, "required": ["day", "value"],
-        "properties": { "day": { "type": "integer", "minimum": 1 }, "value": { "type": "number" } }
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "day",
+          "value"
+        ],
+        "properties": {
+          "day": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "value": {
+            "type": "number"
+          }
+        }
       }
     }
   }

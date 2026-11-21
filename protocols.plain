@@ -19,6 +19,7 @@ description: Step 1 - the protocol catalogue and the demo seed data.
 `listProtocols()` returns the :ProtocolCatalogue: in its order; `getProtocol(id)` returns the one :Protocol: with that `id`.
 - Each :Protocol: has every field of its file, plus `checkInSchedule`, `durationDays` and `painTolerance` of its :RiskTier:.
 - `getProtocol` with an unknown `id` throws `UnknownProtocolError`.
+- Each :Protocol:'s `questions` are ordered `RED_FLAG`, then `SYMPTOM`, then `MEASUREMENT`, each kind in the order of its file.
 
 # build-seed
 `buildSeed(now)` returns `{ patients, reports, checkIns }`: 12 fictional :Patient: items, 4 for each :Protocol:, each with one :Report: and :CheckIn: items for days 1 to 7.

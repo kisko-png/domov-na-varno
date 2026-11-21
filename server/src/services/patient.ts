@@ -16,9 +16,13 @@ import {
   dayAfterDischarge,
   type CheckInSlot,
 } from "../core/schedule.js";
-import type { Patient, Report } from "../core/seed.js";
+import type { Patient, Report, Trend } from "../core/seed.js";
 import { toMillis } from "../core/time.js";
-import { NotFoundError, UnauthenticatedError } from "../errors.js";
+import {
+  AlreadySubmittedError,
+  NotFoundError,
+  UnauthenticatedError,
+} from "../errors.js";
 import type {
   CheckInDraft,
   Reminder,
@@ -38,6 +42,9 @@ export interface CheckInFields {
   wellbeing?: number;
   pain?: number;
   symptoms?: string[];
+  painTrend?: Trend;
+  wellbeingTrend?: Trend;
+  measurements?: Record<string, number>;
   temperatureC?: number;
   photoRef?: string;
   note?: string;
@@ -69,6 +76,9 @@ const FIELDS = [
   "wellbeing",
   "pain",
   "symptoms",
+  "painTrend",
+  "wellbeingTrend",
+  "measurements",
   "temperatureC",
   "photoRef",
   "note",
@@ -85,8 +95,21 @@ export interface PatientView {
   currentSlot: CheckInSlot;
   draft?: CheckInDraft;
   pendingReminder?: Reminder;
+  trendApplies: boolean;
+  previousCheckIn?: PreviousCheckIn;
   demoNotice: string;
 }
+
+/** The latest check-in as the patient view shows it, for the trend questions. */
+export type PreviousCheckIn = Pick<
+  CheckIn,
+  | "timestamp"
+  | "pain"
+  | "wellbeing"
+  | "painTrend"
+  | "wellbeingTrend"
+  | "measurements"
+>;
 
 /** The patient-facing business logic. */
 export class PatientService {
@@ -133,8 +156,23 @@ export class PatientService {
         report.recommendations,
       ],
       currentSlot: slot,
+      trendApplies: checkIns.length > 0,
       demoNotice: SL.patient.demoNotice,
     };
+    const previous = latestCheckIn(checkIns);
+    if (previous) {
+      const prev: PreviousCheckIn = {
+        timestamp: previous.timestamp,
+        pain: previous.pain,
+        wellbeing: previous.wellbeing,
+      };
+      if (previous.painTrend) prev.painTrend = previous.painTrend;
+      if (previous.wellbeingTrend)
+        prev.wellbeingTrend = previous.wellbeingTrend;
+      if (previous.measurements)
+        prev.measurements = { ...previous.measurements };
+      view.previousCheckIn = prev;
+    }
     const draft = this.store.getDraft(patient.id, slot.day, slot.index);
     if (draft) view.draft = draft;
     const latest = Math.max(
@@ -186,7 +224,7 @@ export class PatientService {
     ) {
       const details: FieldError[] = (["wellbeing", "pain", "symptoms"] as const)
         .filter((k) => fields[k] === undefined)
-        .map((field) => ({ field, message: SL.errors.requiredField }));
+        .map((field) => ({ field, message: SL.errors.requiredField(field) }));
       throw new ValidationError(SL.errors.validation, details);
     }
     const now = this.clock.now();
@@ -195,6 +233,24 @@ export class PatientService {
     const all = this.store.listCheckIns();
     const history = all.filter((c) => c.patientId === patient.id);
     const slot = this.slotOf(patient, now, history);
+    if (history.length > 0 && toMillis(slot.dueAt) > now.getTime())
+      throw new AlreadySubmittedError(SL.errors.alreadySubmitted);
+    const measurementIds = new Set(
+      protocol.questions
+        .filter((q) => q.kind === "MEASUREMENT")
+        .map((q) => q.id),
+    );
+    const unknown = Object.keys(fields.measurements ?? {}).filter(
+      (id) => !measurementIds.has(id),
+    );
+    if (unknown.length > 0)
+      throw new ValidationError(
+        SL.errors.validation,
+        unknown.map((id) => ({
+          field: `measurements.${id}`,
+          message: SL.errors.unknownMeasurement(id),
+        })),
+      );
     const n = all.filter((c) => /^chk-\d+$/.test(c.id)).length + 1;
     const checkIn: CheckIn = {
       id: `chk-${n}`,
@@ -207,6 +263,11 @@ export class PatientService {
       symptoms,
       filledBy: fields.filledBy ?? "PATIENT",
     };
+    if (fields.painTrend !== undefined) checkIn.painTrend = fields.painTrend;
+    if (fields.wellbeingTrend !== undefined)
+      checkIn.wellbeingTrend = fields.wellbeingTrend;
+    if (fields.measurements !== undefined)
+      checkIn.measurements = { ...fields.measurements };
     if (fields.temperatureC !== undefined)
       checkIn.temperatureC = fields.temperatureC;
     if (fields.photoRef !== undefined) checkIn.photoRef = fields.photoRef;
@@ -277,4 +338,12 @@ export class PatientService {
     if (!report) throw new NotFoundError(SL.errors.notFound);
     return report;
   }
+}
+
+function latestCheckIn(checkIns: readonly CheckIn[]): CheckIn | undefined {
+  let latest: CheckIn | undefined;
+  for (const c of checkIns)
+    if (!latest || toMillis(c.timestamp) >= toMillis(latest.timestamp))
+      latest = c;
+  return latest;
 }

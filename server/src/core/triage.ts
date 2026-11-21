@@ -11,7 +11,7 @@ export type TriageStatus = "GREEN" | "YELLOW" | "RED";
 /** Why an assessment has its status. */
 export interface Reason {
   text: string;
-  ruleId: "R0" | "R1" | "R2" | "R3" | "R4" | "R5";
+  ruleId: "R0" | "R1" | "R2" | "R3" | "R4" | "R5" | "R6" | "R7";
 }
 
 /** An append-only triage result; one of silence has no `checkInId`. */
@@ -179,6 +179,70 @@ export function rulePainJump(
   ];
 }
 
+/** Rule R6: YELLOW for a second WORSE in a row or a MUCH_WORSE (RED in the HIGH tier), per pain and wellbeing trend. */
+export function ruleTrend(
+  checkIn: CheckIn,
+  history: CheckIn[],
+  protocol: Protocol,
+): RuleResult[] {
+  let latest: CheckIn | undefined;
+  for (const h of history)
+    if (!latest || toMillis(h.timestamp) >= toMillis(latest.timestamp))
+      latest = h;
+  const out: RuleResult[] = [];
+  const trends = [
+    ["pain", checkIn.painTrend, latest?.painTrend],
+    ["wellbeing", checkIn.wellbeingTrend, latest?.wellbeingTrend],
+  ] as const;
+  for (const [what, now, before] of trends) {
+    if (now === "MUCH_WORSE") {
+      out.push({
+        status: protocol.riskTier === "HIGH" ? "RED" : "YELLOW",
+        reason: { ruleId: "R6", text: SL.triage.trendMuchWorse(what) },
+      });
+    } else if (
+      now === "WORSE" &&
+      (before === "WORSE" || before === "MUCH_WORSE")
+    ) {
+      out.push({
+        status: "YELLOW",
+        reason: { ruleId: "R6", text: SL.triage.trendWorse(what) },
+      });
+    }
+  }
+  return out;
+}
+
+/** Rule R7: one YELLOW reason for a weight gain of 1 kg vs the day before or 2 kg within 7 days; gives the largest such gain. */
+export function ruleWeight(checkIn: CheckIn, history: CheckIn[]): RuleResult[] {
+  const w = checkIn.measurements?.weightKg;
+  if (w === undefined) return [];
+  const at = toMillis(checkIn.timestamp);
+  let gain = -Infinity;
+  for (const h of history) {
+    const hw = h.measurements?.weightKg;
+    if (hw === undefined) continue;
+    const g = w - hw;
+    const t = toMillis(h.timestamp);
+    const dayBefore = h.dayAfterDischarge === checkIn.dayAfterDischarge - 1;
+    const inWeek = t < at && t >= at - 7 * DAY_MS;
+    if ((dayBefore && g >= 1 - 1e-9) || (inWeek && g >= 2 - 1e-9))
+      gain = Math.max(gain, g);
+  }
+  if (gain === -Infinity) return [];
+  return [
+    {
+      status: "YELLOW",
+      reason: {
+        ruleId: "R7",
+        text: SL.triage.weightGain(
+          (Math.round(gain * 10) / 10).toFixed(1).replace(".", ","),
+        ),
+      },
+    },
+  ];
+}
+
 /** Assesses a check-in against its history and protocol; a RED assessment comes with a NURSE alert. */
 export function assessCheckIn(input: AssessCheckInInput): AssessCheckInResult {
   const { checkIn, protocol, now, assessmentId, alertId } = input;
@@ -188,6 +252,8 @@ export function assessCheckIn(input: AssessCheckInInput): AssessCheckInResult {
     ...ruleTemperature(checkIn),
     ...rulePainCurve(checkIn, input.history, protocol),
     ...rulePainJump(checkIn, input.history),
+    ...ruleTrend(checkIn, input.history, protocol),
+    ...ruleWeight(checkIn, input.history),
   ];
   let status: TriageStatus = "GREEN";
   for (const r of results) if (RANK[r.status] > RANK[status]) status = r.status;

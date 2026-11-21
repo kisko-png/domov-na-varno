@@ -12,7 +12,7 @@ description: Step 6 - the safety-bounded chatbot - guards, survey engine and sum
 
 - :FakeLlmClient: is the :LlmClient: of tests: deterministic, calling no model.
   - As the red-flag classifier it answers the id of the first :RedFlag: of the :Protocol: one of whose `patterns` the message contains, else none.
-  - As the topic matcher it answers the id of the first `guidanceTopics` entry one of whose `keywords` the message contains, else none.
+  - As the topic matcher it answers the id of the first `guidanceTopics` entry one of whose `keywords` the lowercased message contains, else none.
 
 - :ChatSession: is one conversation of a :Patient: with the bot: its id `chat-<n>`, its transcript and its survey answers.
 

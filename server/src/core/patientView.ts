@@ -36,7 +36,7 @@ export function redFlagWarning(
 }
 
 /**
- * The current slot: the earliest slot due at or before `now` that is not covered
+ * The current slot: the earliest slot due at or before `now`, after the latest check-in, that is not covered
  * (a slot of index n is covered when its day has at least n check-ins); else the next slot after `now`.
  * Returns undefined when the schedule has neither.
  */
@@ -50,10 +50,17 @@ export function currentSlot(
   const perDay = new Map<number, number>();
   for (const c of checkIns)
     perDay.set(c.dayAfterDischarge, (perDay.get(c.dayAfterDischarge) ?? 0) + 1);
+  const latest = Math.max(
+    -Infinity,
+    ...checkIns.map((c) => toMillis(c.timestamp)),
+  );
   const slots = checkInSlots(protocol, patient);
   return (
     slots.find(
-      (s) => toMillis(s.dueAt) <= nowMs && (perDay.get(s.day) ?? 0) < s.index,
+      (s) =>
+        toMillis(s.dueAt) <= nowMs &&
+        toMillis(s.dueAt) > latest &&
+        (perDay.get(s.day) ?? 0) < s.index,
     ) ?? slots.find((s) => toMillis(s.dueAt) > nowMs)
   );
 }

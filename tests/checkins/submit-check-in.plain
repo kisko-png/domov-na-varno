@@ -15,7 +15,13 @@ T15: submitting without required fields is impossible; a draft is saved and a re
 T16: a red flag in a check-in shows "Kontaktirajte zdravnika" immediately and creates a RED Alert on submission.
 
 # fever-red
-With the token of `pat-09`, a final check-in with `wellbeing` 4, `pain` 1, `symptoms` [] and `temperatureC` 38.7 returns `201` with `assessment.status` `RED`, `reassuranceAllowed` `false`, `alertCreated` `true` and no `reassuranceText`.
+After `POST /sim/advance` with 1440 minutes, a final check-in with the token of `pat-09`, `wellbeing` 4, `pain` 1, `symptoms` [] and `temperatureC` 38.7 returns `201` with `assessment.status` `RED`, `reassuranceAllowed` `false`, `alertCreated` `true` and no `reassuranceText`.
 
 # stable-green
-With the token of `pat-09`, a final check-in with `wellbeing` 5, `pain` 0, `symptoms` [] and `temperatureC` 36.8 returns `201` with `assessment.status` `GREEN`, `reassuranceAllowed` `true` and `reassuranceText` "v okviru pričakovanega za ta dan".
+After `POST /sim/advance` with 1440 minutes, a final check-in with the token of `pat-10`, `wellbeing` 5, `pain` 0, `symptoms` [] and `temperatureC` 36.8 returns `201` with `assessment.status` `GREEN`, `reassuranceAllowed` `true` and `reassuranceText` "v okviru pričakovanega za ta dan".
+
+# one-final-per-slot
+After `POST /sim/advance` with 1440 minutes, a final check-in with the token of `pat-03` returns `201`; the same check-in sent again right after returns `409` with `already_submitted`, and `GET /patients/pat-03/checkins` has one :CheckIn: more than before the first.
+
+# first-check-in-without-trend
+After `POST /sim/advance` with 1440 minutes, a final check-in with the token of `pat-04` with only `wellbeing` 4, `pain` 3 and `symptoms` [] returns `201`.

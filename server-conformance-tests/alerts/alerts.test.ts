@@ -27,14 +27,16 @@ function hasR5(a: unknown): boolean {
   return list(get(a, "reasons")).some((r) => get(r, "ruleId") === "R5");
 }
 
-/** Submits a RED check-in for pat-09 and returns its assessment id. */
-async function redCheckIn(): Promise<string> {
+/** Advances 1440 minutes, then submits a RED check-in for a seeded minor abdominal patient (used once per service) and returns its assessment id. */
+async function redCheckIn(token: string): Promise<string> {
+  const adv = await call(svc, "POST", "/sim/advance", { minutes: 1440 });
+  expect(adv.status, `advance 1440: ${show(adv)}`).toBe(200);
   const sub = await call(
     svc,
     "POST",
     "/checkins",
     { final: true, wellbeing: 4, pain: 2, symptoms: ["vomiting"] },
-    "tok-09",
+    token,
   );
   expect(sub.status, `RED check-in: ${show(sub)}`).toBe(201);
   expect(get(sub.body, "assessment.status"), show(sub)).toBe("RED");
@@ -107,7 +109,7 @@ describe("alerts:list-patients", () => {
 describe("alerts:escalate-alerts", () => {
   // conformance scenario t8-escalation of alerts:escalate-alerts
   it("t8-escalation", async () => {
-    const asmId = await redCheckIn();
+    const asmId = await redCheckIn("tok-09");
     const before = await alertsOf(asmId);
     const nurse = before.find((a) => get(a, "recipientRole") === "NURSE");
     expect(
@@ -130,7 +132,7 @@ describe("alerts:escalate-alerts", () => {
 
   // conformance scenario acknowledged-not-escalated of alerts:escalate-alerts
   it("acknowledged-not-escalated", async () => {
-    const asmId = await redCheckIn();
+    const asmId = await redCheckIn("tok-10");
     const before = await alertsOf(asmId);
     const nurse = before.find((a) => get(a, "recipientRole") === "NURSE");
     expect(

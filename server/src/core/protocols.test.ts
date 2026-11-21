@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getProtocol, listProtocols, toProtocol } from "./protocols.js";
+import {
+  getProtocol,
+  listProtocols,
+  orderQuestions,
+  toProtocol,
+} from "./protocols.js";
 import {
   DomovError,
   ProtocolFormatError,
@@ -41,7 +46,7 @@ describe("listProtocols", () => {
   it("returns copies a caller cannot use to change the catalogue", () => {
     const p = getProtocol("cardiac-surgery");
     p.questions.length = 0;
-    expect(getProtocol("cardiac-surgery").questions.length).toBe(9);
+    expect(getProtocol("cardiac-surgery").questions.length).toBe(12);
   });
 });
 
@@ -61,5 +66,23 @@ describe("toProtocol", () => {
     expect(() => toProtocol({ ...hip, questions: 1 })).toThrow(
       ProtocolFormatError,
     );
+  });
+});
+
+describe("question order", () => {
+  it("orders questions RED_FLAG, SYMPTOM, MEASUREMENT, stable within a kind", () => {
+    const rank = { RED_FLAG: 0, SYMPTOM: 1, MEASUREMENT: 2 } as const;
+    for (const p of listProtocols()) {
+      const ranks = p.questions.map((q) => rank[q.kind]);
+      expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    }
+    expect(
+      orderQuestions([
+        { id: "m", label: "m", kind: "MEASUREMENT" },
+        { id: "s1", label: "s", kind: "SYMPTOM" },
+        { id: "r", label: "r", kind: "RED_FLAG" },
+        { id: "s2", label: "s", kind: "SYMPTOM" },
+      ]).map((q) => q.id),
+    ).toEqual(["r", "s1", "s2", "m"]);
   });
 });

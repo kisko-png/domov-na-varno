@@ -14,10 +14,30 @@ export interface CurvePoint {
   value: number;
 }
 
-/** A symptom of the daily check-in checklist. */
+/** The kind of a check-in question. */
+export type QuestionKind = "RED_FLAG" | "SYMPTOM" | "MEASUREMENT";
+
+/** A question of the daily check-in: a red-flag symptom, another symptom, or a measurement in `unit`. */
 export interface Symptom {
   id: string;
   label: string;
+  kind: QuestionKind;
+  unit?: string;
+}
+
+const KIND_ORDER: Record<QuestionKind, number> = {
+  RED_FLAG: 0,
+  SYMPTOM: 1,
+  MEASUREMENT: 2,
+};
+
+/** Orders questions RED_FLAG, then SYMPTOM, then MEASUREMENT, each kind keeping its order (stable). */
+export function orderQuestions(questions: readonly Symptom[]): Symptom[] {
+  return [...questions].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
+}
+
+function isKind(value: unknown): value is QuestionKind {
+  return value === "RED_FLAG" || value === "SYMPTOM" || value === "MEASUREMENT";
 }
 
 /** A red flag of a protocol. */
@@ -123,12 +143,21 @@ export function toProtocol(file: unknown): Protocol {
   ) {
     throw new ProtocolFormatError(`Protocol ${id} has no surveyGraph`);
   }
+  for (const q of record["questions"] as unknown[]) {
+    const kind = (q as Record<string, unknown> | null)?.["kind"];
+    if (!isKind(kind))
+      throw new ProtocolFormatError(
+        `Protocol ${id} has a question without a valid kind`,
+      );
+  }
   const settings = RISK_TIERS[tier];
+  const base = structuredClone(record) as unknown as Omit<
+    Protocol,
+    "checkInSchedule" | "durationDays" | "painTolerance"
+  >;
   return {
-    ...(structuredClone(record) as unknown as Omit<
-      Protocol,
-      "checkInSchedule" | "durationDays" | "painTolerance"
-    >),
+    ...base,
+    questions: orderQuestions(base.questions),
     checkInSchedule: structuredClone(settings.checkInSchedule),
     durationDays: settings.durationDays,
     painTolerance: settings.painTolerance,

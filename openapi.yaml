@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Domov na varno API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Post-discharge home recovery monitoring - hackathon prototype.
 
@@ -13,13 +13,14 @@ info:
     - Time is simulated: now = real now + offset, moved by `POST /sim/advance`. Silence (rule R5) and alert escalation are evaluated lazily on every read of `GET /patients`, `GET /alerts` and `GET /brief`.
     - Check-ins and assessments are append-only: there is no update or delete path, and `PUT`, `PATCH` and `DELETE` on them return `405 method_not_allowed`.
     - Moments are ISO 8601 with offset; calendar days (`LocalDay`) are in Europe/Ljubljana.
-    - Every error is the one `Error` schema; clients branch on `error.code`, never on `error.message`.
+    - Every error is the one `Error` schema; clients branch on `error.code`, never on `error.message`. Every message, validation details included, is Slovenian.
+    - A POST that takes no body (`/chat/{id}/end`, `/chat/{id}/summary/confirm`, `/alerts/{id}/ack`, `/admin/reset`, `/sim/advance` with its default) is accepted with no body or an empty one, whatever its `Content-Type`.
 servers:
   - url: http://localhost:3000
 tags:
   - { name: staff, description: "Doctors, nurses and coordinators. No authentication." }
   - { name: patient, description: "The patient or caregiver, through the magic link." }
-  - { name: sim, description: Demo time travel. }
+  - { name: sim, description: "Demo time travel and reset." }
 
 paths:
   /reports:
@@ -160,7 +161,8 @@ paths:
       summary: Save a draft (final=false) or submit the final check-in (final=true)
       description: |
         Draft: any subset of the fields, stored per patient and current slot, overwritten by the next draft. Returns 200.
-        Final: wellbeing, pain and symptoms are required (symptoms may be an empty list); stored append-only, assessed at once, the draft of the slot deleted. Returns 201.
+        Final: wellbeing, pain and symptoms are required (symptoms may be an empty list); painTrend, wellbeingTrend and measurements are optional, also on the first check-in. Stored append-only, assessed at once, the draft of the slot deleted. Returns 201.
+        One final check-in per slot: when the patient already has a check-in and the current slot is not yet due, it returns 409 `already_submitted` and stores nothing. Drafts are always accepted.
         A RED assessment creates a NURSE alert.
       parameters: [{ $ref: "#/components/parameters/PatientToken" }]
       requestBody:
@@ -170,7 +172,9 @@ paths:
             schema: { $ref: "#/components/schemas/CheckInSubmit" }
             examples:
               draft: { value: { final: false, wellbeing: 3, pain: 5 } }
-              final: { value: { final: true, wellbeing: 3, pain: 5, symptoms: ["tiredness"], temperatureC: 37.4, note: "Slabo sem spal.", filledBy: PATIENT } }
+              final: { value: { final: true, wellbeing: 3, pain: 5, painTrend: SAME, wellbeingTrend: BETTER, symptoms: ["tiredness"], temperatureC: 37.4, note: "Slabo sem spal.", filledBy: PATIENT } }
+              firstCheckIn: { value: { final: true, wellbeing: 3, pain: 6, symptoms: [] } }
+              cardiacWithWeight: { value: { final: true, wellbeing: 3, pain: 4, painTrend: BETTER, wellbeingTrend: SAME, symptoms: ["ankle-swelling"], measurements: { weightKg: 82.4 } } }
       responses:
         "200":
           description: Draft saved
@@ -183,6 +187,12 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/CheckInResult" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409":
+          description: "`already_submitted` - the current slot already has its final check-in"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: { code: already_submitted, message: "Današnji vprašalnik ste že oddali. Naslednjega lahko izpolnite, ko bo na vrsti." } }
         "422": { $ref: "#/components/responses/ValidationError" }
 
   /checkins/{id}:
@@ -230,6 +240,7 @@ paths:
       tags: [patient]
       operationId: endChat
       summary: End the conversation and compile the summary draft for the patient to review
+      description: Takes no body.
       parameters: [{ $ref: "#/components/parameters/SessionId" }, { $ref: "#/components/parameters/PatientToken" }]
       responses:
         "200":
@@ -263,6 +274,7 @@ paths:
       tags: [patient]
       operationId: confirmChatSummary
       summary: The patient confirms the summary; only then is it sent to the care team
+      description: Takes no body.
       parameters: [{ $ref: "#/components/parameters/SessionId" }, { $ref: "#/components/parameters/PatientToken" }]
       responses:
         "200":
@@ -311,6 +323,7 @@ paths:
       tags: [staff]
       operationId: acknowledgeAlert
       summary: Acknowledge an alert; acknowledging again keeps the first acknowledgedAt
+      description: Takes no body.
       parameters: [{ name: id, in: path, required: true, schema: { type: string }, example: alr-1 }]
       responses:
         "200":
@@ -352,8 +365,9 @@ paths:
       tags: [sim]
       operationId: advanceClock
       summary: Move the simulated clock forward (1440 minutes = one day)
+      description: Without a body, or without minutes, it moves the clock 1440 minutes.
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema: { $ref: "#/components/schemas/SimAdvance" }
@@ -364,6 +378,21 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SimClock" }
         "422": { $ref: "#/components/responses/ValidationError" }
+
+  /admin/reset:
+    post:
+      tags: [sim]
+      operationId: resetDemo
+      summary: Demo only - reset everything to a fresh seed
+      description: |
+        Empties the database, sets the clock offset to 0, then seeds the 12 demo patients with their 7 days of history for the new simulated now, as at first start.
+        Every id count starts again from 1. Patients created with POST /reports, chat sessions, drafts, reminders and alerts are gone. Takes no body.
+      responses:
+        "200":
+          description: The new simulated now (offsetMinutes 0)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimClock" }
 
 components:
   parameters:
@@ -389,7 +418,7 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
-          example: { error: { code: validation_error, message: "Manjkajo obvezni podatki.", details: [{ field: pain, message: "Obvezno polje." }] } }
+          example: { error: { code: validation_error, message: "Manjkajo obvezni podatki.", details: [{ field: pain, message: "Manjka obvezno polje pain." }] } }
     MethodNotAllowed:
       description: "`method_not_allowed` - check-ins and assessments are append-only"
       content:
@@ -408,7 +437,7 @@ components:
           properties:
             code:
               type: string
-              enum: [validation_error, not_found, unauthenticated, conflict, method_not_allowed, no_matching_protocol, internal_error]
+              enum: [validation_error, not_found, unauthenticated, conflict, already_submitted, method_not_allowed, no_matching_protocol, internal_error]
             message: { type: string, description: Slovenian text for a person; not for branching }
             details:
               type: array
@@ -423,7 +452,14 @@ components:
     Status: { type: string, enum: [GREEN, YELLOW, RED] }
     RiskTier: { type: string, enum: [HIGH, MEDIUM, LOW] }
     RecipientRole: { type: string, enum: [NURSE, COORDINATOR] }
-    RuleId: { type: string, enum: [R0, R1, R2, R3, R4, R5], description: "R0 = no rule triggered (GREEN); R1 red flag, R2 temperature, R3 curve, R4 pain jump, R5 silence" }
+    RuleId: { type: string, enum: [R0, R1, R2, R3, R4, R5, R6, R7], description: "R0 = no rule triggered (GREEN); R1 red flag, R2 temperature, R3 curve, R4 pain jump, R5 silence, R6 trend, R7 weight gain" }
+    Trend: { type: string, enum: [MUCH_BETTER, BETTER, SAME, WORSE, MUCH_WORSE], description: "How a value changed since the previous check-in, as the patient tells it" }
+    QuestionKind: { type: string, enum: [RED_FLAG, SYMPTOM, MEASUREMENT], description: "RED_FLAG - a symptom a red flag names; SYMPTOM - any other symptom to tick; MEASUREMENT - a number to enter, in unit" }
+    Measurements:
+      type: object
+      description: A number per MEASUREMENT question id of the patient's protocol
+      additionalProperties: { type: number }
+      example: { weightKg: 82.4 }
     FilledBy: { type: string, enum: [PATIENT, CAREGIVER] }
 
     CurvePoint:
@@ -443,8 +479,13 @@ components:
 
     Symptom:
       type: object
-      required: [id, label]
-      properties: { id: { type: string, example: calf-pain-swelling }, label: { type: string, example: "Bolečina ali oteklina v mečih" } }
+      description: A check-in question. Protocols list them RED_FLAG first, then SYMPTOM, then MEASUREMENT.
+      required: [id, label, kind]
+      properties:
+        id: { type: string, example: calf-pain-swelling }
+        label: { type: string, example: "Bolečina ali oteklina v mečih" }
+        kind: { $ref: "#/components/schemas/QuestionKind" }
+        unit: { type: string, description: Only for MEASUREMENT, example: kg }
 
     RedFlag:
       type: object
@@ -505,7 +546,7 @@ components:
         id: { type: string, example: hip-replacement }
         name: { type: string, example: "Zamenjava kolka" }
         riskTier: { $ref: "#/components/schemas/RiskTier" }
-        version: { type: string, example: "1.0.0" }
+        version: { type: string, example: "1.1.0" }
         checkInSchedule: { type: array, items: { $ref: "#/components/schemas/ScheduleRule" } }
         durationDays: { type: integer, example: 14 }
         painTolerance: { type: number, example: 2 }
@@ -519,7 +560,7 @@ components:
           properties:
             pain: { type: array, items: { $ref: "#/components/schemas/CurvePoint" } }
             wellbeing: { type: array, items: { $ref: "#/components/schemas/CurvePoint" } }
-        questions: { type: array, items: { $ref: "#/components/schemas/Symptom" }, description: The daily symptom checklist }
+        questions: { type: array, items: { $ref: "#/components/schemas/Symptom" }, description: "The daily check-in questions: RED_FLAG first, then SYMPTOM, then MEASUREMENT" }
         redFlags: { type: array, items: { $ref: "#/components/schemas/RedFlag" } }
         surveyGraph:
           type: object
@@ -638,7 +679,7 @@ components:
 
     PatientView:
       type: object
-      required: [patientName, dayAfterDischarge, protocol, doctorPhone, patientInstructions, currentSlot, demoNotice]
+      required: [patientName, dayAfterDischarge, protocol, doctorPhone, patientInstructions, currentSlot, trendApplies, demoNotice]
       properties:
         patientName: { type: string, example: "Marija Novak" }
         dayAfterDischarge: { type: integer, example: 8 }
@@ -651,6 +692,18 @@ components:
           properties: { day: { type: integer, example: 8 }, index: { type: integer, enum: [1, 2] }, dueAt: { $ref: "#/components/schemas/Moment" } }
         draft: { $ref: "#/components/schemas/CheckInDraft" }
         pendingReminder: { $ref: "#/components/schemas/Reminder" }
+        trendApplies: { type: boolean, description: "The patient has a previous check-in, so the trend questions are asked" }
+        previousCheckIn:
+          type: object
+          description: The latest check-in, present when trendApplies
+          required: [timestamp, pain, wellbeing]
+          properties:
+            timestamp: { $ref: "#/components/schemas/Moment" }
+            pain: { type: integer, example: 7 }
+            wellbeing: { type: integer, example: 2 }
+            painTrend: { $ref: "#/components/schemas/Trend" }
+            wellbeingTrend: { $ref: "#/components/schemas/Trend" }
+            measurements: { $ref: "#/components/schemas/Measurements" }
         demoNotice: { type: string, example: "Vse klinične vrednosti so demonstracijske in niso klinično preverjene." }
 
     CheckInFields:
@@ -658,7 +711,10 @@ components:
       properties:
         wellbeing: { type: integer, minimum: 1, maximum: 5, example: 3 }
         pain: { type: integer, minimum: 0, maximum: 10, example: 5 }
-        symptoms: { type: array, items: { type: string }, description: Symptom ids of the patient's protocol, example: ["tiredness"] }
+        painTrend: { $ref: "#/components/schemas/Trend" }
+        wellbeingTrend: { $ref: "#/components/schemas/Trend" }
+        symptoms: { type: array, items: { type: string }, description: Ids of RED_FLAG and SYMPTOM questions of the patient's protocol, example: ["tiredness"] }
+        measurements: { $ref: "#/components/schemas/Measurements" }
         temperatureC: { type: number, minimum: 34, maximum: 43, example: 37.4 }
         photoRef: { type: string, description: A reference to a photo (upload is out of scope), example: "foto-rana-01.jpg" }
         note: { type: string, maxLength: 2000, example: "Slabo sem spal." }
@@ -693,12 +749,15 @@ components:
       properties:
         id: { type: string, example: chk-1 }
         patientId: { type: string, example: pat-01 }
-        protocolVersion: { type: string, example: "1.0.0" }
+        protocolVersion: { type: string, example: "1.1.0" }
         dayAfterDischarge: { type: integer, example: 8 }
         timestamp: { $ref: "#/components/schemas/Moment" }
         wellbeing: { type: integer, minimum: 1, maximum: 5 }
         pain: { type: integer, minimum: 0, maximum: 10 }
+        painTrend: { $ref: "#/components/schemas/Trend" }
+        wellbeingTrend: { $ref: "#/components/schemas/Trend" }
         symptoms: { type: array, items: { type: string } }
+        measurements: { $ref: "#/components/schemas/Measurements" }
         temperatureC: { type: number }
         photoRef: { type: string }
         note: { type: string }
@@ -864,8 +923,7 @@ components:
 
     SimAdvance:
       type: object
-      required: [minutes]
-      properties: { minutes: { type: integer, minimum: 1, example: 1440 } }
+      properties: { minutes: { type: integer, minimum: 1, default: 1440, example: 1440 } }
 
     SimClock:
       type: object

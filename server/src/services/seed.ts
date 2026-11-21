@@ -1,3 +1,4 @@
+import type { ClockService, SimClock } from "./clock.js";
 import { protocolOfPatient } from "../core/personalProtocol.js";
 import { buildSeed, type CheckIn } from "../core/seed.js";
 import { assessCheckIn, type Alert, type Assessment } from "../core/triage.js";
@@ -39,4 +40,15 @@ export function seedStoreIfEmpty(store: StoreRepository, now: Date): boolean {
   if (!store.isEmpty()) return false;
   store.addAll(buildAssessedSeed(now));
   return true;
+}
+
+/** Empties the store, sets the sim offset to 0 and stores the assessed seed for that now. */
+export function resetStore(
+  store: StoreRepository,
+  clock: ClockService,
+): SimClock {
+  store.clear();
+  clock.reset();
+  store.addAll(buildAssessedSeed(clock.now()));
+  return clock.current();
 }

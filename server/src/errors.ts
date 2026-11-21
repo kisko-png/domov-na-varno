@@ -30,6 +30,9 @@ export class NotFoundError extends DomovError {}
 /** Thrown when an action conflicts with the stored state (HTTP 409 `conflict`). */
 export class ConflictError extends DomovError {}
 
+/** Thrown when the current slot already has its final check-in (HTTP 409 `already_submitted`). */
+export class AlreadySubmittedError extends DomovError {}
+
 /** One invalid field of an input. */
 export interface FieldError {
   field: string;

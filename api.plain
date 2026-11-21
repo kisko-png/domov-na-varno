@@ -14,3 +14,7 @@ description: Step 7 - the rest of the HTTP API, the protocol list and the patien
 # patient-detail
 `GET /patients/{id}` returns `200` with a `PatientDetail` of :DomovApi:: its `PatientSummary` as `GET /patients` gives it, its :Report:, its :PersonalProtocol: and its :PatientInstructions:; an unknown `id` returns `404` with `not_found`.
 - `sentSummaries` are the `sessionId` and `confirmedAt` of its chat summaries with `summaryStatus` `SENT`, the latest first.
+
+# admin-reset
+`POST /admin/reset`, for demos, empties :Db:, sets the offset of :SimNow: to 0, stores `buildSeed(now)` for that :SimNow: as the service does at start, and returns `200` with the new `{ now, offsetMinutes }`.
+- Every id count starts again from 1, so `GET /patients` then lists exactly the 12 seeded :Patient: items, and no chat session, :Draft: or :Reminder: is left.

@@ -84,6 +84,19 @@ describe("personal protocol", () => {
     expect(getProtocol("cardiac-surgery").redFlags).toHaveLength(6);
   });
 
+  it("adds heavy-bleeding as RED_FLAG, keeping RED_FLAG, SYMPTOM, MEASUREMENT order", () => {
+    const p = personalProtocol(
+      getProtocol("cardiac-surgery"),
+      report(["heparin"]),
+    );
+    const ids = p.questions.map((q) => q.id);
+    expect(p.questions.find((q) => q.id === "heavy-bleeding")?.kind).toBe(
+      "RED_FLAG",
+    );
+    expect(ids.indexOf("heavy-bleeding")).toBe(ids.indexOf("weight-gain") + 1);
+    expect(ids.at(-1)).toBe("weightKg");
+  });
+
   it("keeps an existing heavy-bleeding symptom once", () => {
     const p = personalProtocol(
       getProtocol("hip-replacement"),

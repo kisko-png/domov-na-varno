@@ -5,9 +5,11 @@ import Fastify, {
   LogController,
   type FastifyError,
   type FastifyInstance,
+  type FastifyRequest,
 } from "fastify";
 import type { LogLevel } from "./config.js";
 import {
+  AlreadySubmittedError,
   ConflictError,
   DomovError,
   ForbiddenError,
@@ -32,6 +34,7 @@ import { ReminderService } from "./services/reminders.js";
 import { HistoryService } from "./services/history.js";
 import { PatientService } from "./services/patient.js";
 import { ClockService } from "./services/clock.js";
+import { resetStore } from "./services/seed.js";
 import { SL } from "./strings.sl.js";
 import { protocolRoutes } from "./routes/protocols.js";
 import { ProtocolService } from "./services/protocols.js";
@@ -65,6 +68,7 @@ function body(
 
 function domainStatus(err: DomovError): [number, string] | undefined {
   if (err instanceof NotFoundError) return [404, "not_found"];
+  if (err instanceof AlreadySubmittedError) return [409, "already_submitted"];
   if (err instanceof ConflictError) return [409, "conflict"];
   if (err instanceof NoMatchingProtocolError)
     return [422, "no_matching_protocol"];
@@ -83,6 +87,43 @@ function fieldOf(v: {
   const missing = v.params?.["missingProperty"];
   if (typeof missing === "string") return base ? `${base}.${missing}` : missing;
   return base;
+}
+
+/** A Slovenian message for one schema-layer validation error. */
+export function slovenianMessage(v: {
+  keyword?: string;
+  instancePath?: string;
+  params?: Record<string, unknown>;
+}): string {
+  const p = v.params ?? {};
+  switch (v.keyword) {
+    case "required":
+      return SL.errors.requiredField(fieldOf(v));
+    case "type":
+      return SL.errors.invalidType;
+    case "minimum":
+    case "exclusiveMinimum":
+    case "minItems":
+      return SL.errors.tooSmall(p["limit"]);
+    case "maximum":
+    case "exclusiveMaximum":
+    case "maxItems":
+      return SL.errors.tooLarge(p["limit"]);
+    case "maxLength":
+      return SL.errors.tooLong(p["limit"]);
+    case "enum":
+    case "const":
+    case "anyOf":
+      return SL.errors.notAllowedValue;
+    case "additionalProperties": {
+      const extra = p["additionalProperty"];
+      return SL.errors.unknownField(
+        typeof extra === "string" ? extra : fieldOf(v),
+      );
+    }
+    default:
+      return SL.errors.invalidField;
+  }
 }
 
 /** Builds the HTTP service over its repositories and real clock. */
@@ -110,6 +151,32 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.addHook("onRequest", async (req, reply) => {
     reply.header("X-Request-ID", req.id);
   });
+  // A POST with no body, or an empty one, is an empty JSON object, whatever its Content-Type.
+  app.removeAllContentTypeParsers();
+  const parseBody = (
+    req: FastifyRequest,
+    raw: string | Buffer,
+    done: (err: Error | null, body?: unknown) => void,
+  ): void => {
+    const text = String(raw);
+    if (text.trim() === "") return done(null, {});
+    try {
+      done(null, JSON.parse(text) as unknown);
+    } catch (err) {
+      req.log.warn({ err }, "request body is not valid JSON");
+      done(new ValidationError(SL.errors.badRequest));
+    }
+  };
+  app.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    parseBody,
+  );
+  app.addContentTypeParser("*", { parseAs: "string" }, parseBody);
+  app.addHook("preValidation", async (req) => {
+    if (req.method === "POST" && (req.body === undefined || req.body === null))
+      req.body = {};
+  });
   app.addHook("onResponse", async (req, reply) => {
     req.log.info(
       {
@@ -126,7 +193,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     if (err.validation) {
       const details = err.validation.map((v) => ({
         field: fieldOf(v),
-        message: v.message ?? SL.errors.invalidField,
+        message: slovenianMessage(v),
       }));
       return reply
         .status(422)
@@ -160,7 +227,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await app.register(cors, { origin: "*" });
   const clock = new ClockService(deps.clockRepository, deps.realNow);
-  await app.register(simRoutes, { clock });
+  await app.register(simRoutes, {
+    clock,
+    reset: () => resetStore(deps.storeRepository, clock),
+  });
   const patients = new PatientService(deps.storeRepository, clock);
   await app.register(patientRoutes, { patients });
   const history = new HistoryService(deps.storeRepository);
