@@ -1,0 +1,51 @@
+---
+import:
+  - domov
+requires:
+  - protocols
+description: Step 2 - the deterministic triage engine (R1-R5) and the curve comparison.
+---
+
+***definitions***
+
+- :Deviation: of a :CheckIn: is its `pain` minus the expected pain of its `dayAfterDischarge`, and the expected wellbeing of that day minus its `wellbeing`.
+
+***functional specs***
+
+# expected-for-day
+`expectedForDay(protocol, day)` returns `{ pain, wellbeing, painTolerance }` of the :Protocol: for a :DayAfterDischarge:; `dayAfterDischarge(dischargeDate, moment)` returns the :DayAfterDischarge: of a moment.
+- A day before 1 takes the values of day 1; a day after the last day of a curve takes its last value.
+
+# check-in-schedule
+`checkInSlots(protocol, patient)` returns the :CheckInSlot: items of the :Patient: in time order, as the `checkInSchedule` of the :Protocol:'s :RiskTier: sets them, on days 1 to `durationDays`.
+- The first slot of a day is due at `preferredCheckInTime` of that :LocalDay:; a second slot is due 12 hours after the first.
+
+# assess-check-in
+`assessCheckIn({ checkIn, history, protocol, patient, now, assessmentId, alertId })` returns `{ assessment, alert? }` for a :CheckIn: and its :History:.
+- The :Assessment: has `id` `assessmentId`, the `patientId` and `checkInId` of the :CheckIn:, `createdAt` `now`, and a :Reason: for every rule the :CheckIn: triggers.
+- Its `status` is the most severe :TriageStatus: among its reasons.
+- When no rule triggers, `status` is `GREEN` with the one :Reason: `R0`, saying the values are within what is expected for the day.
+- A `RED` :Assessment: comes with an :Alert: of `id` `alertId`, `recipientRole` `NURSE` and `createdAt` `now`; any other comes with none.
+
+# rule-red-flag
+Rule `R1`: every :Symptom: of the :CheckIn: that a :RedFlag: of the :Protocol: names adds a `RED` :Reason: naming that :Symptom:'s `label`.
+
+# rule-temperature
+Rule `R2`: a `temperatureC` of at least 38.0 and below 38.5 adds a `YELLOW` :Reason:; one of 38.5 or more adds a `RED` :Reason:; a :CheckIn: without `temperatureC` triggers none.
+- The :Reason: text shows `temperatureC` as given, unrounded.
+
+# rule-pain-curve
+Rule `R3` compares the :CheckIn: with the expected curves of its `dayAfterDischarge`, using its :Deviation:.
+- A pain :Deviation: greater than `painTolerance` adds a `YELLOW` :Reason:; one greater than twice `painTolerance` adds a `RED` :Reason: instead.
+- A wellbeing :Deviation: of 2 or more adds a `YELLOW` :Reason:.
+- A pain `YELLOW` becomes `RED` when a :CheckIn: of the :History: on the day before also had a pain :Deviation: greater than `painTolerance`; a wellbeing `YELLOW` becomes `RED` when one on the day before also had a wellbeing :Deviation: of 2 or more.
+
+# rule-pain-jump
+Rule `R4`: a `pain` 3 or more points above the `pain` of a :CheckIn: of the :History: made in the 24 hours before adds a `YELLOW` :Reason:.
+
+# assess-silence
+`assessSilence({ patient, protocol, checkIns, now, assessmentId, alertId })` returns `{ assessment, alert? }` for rule `R5`, or `null` when the :Patient: is not silent.
+- The slot counted is the earliest :CheckInSlot: due at or before `now` and after the latest :CheckIn: of `checkIns`, that is not covered; a slot of `index` n is covered when its day has at least n :CheckIn: items.
+- Its lateness is `now` minus its `dueAt`: reaching the :RiskTier:'s `redAfterHours` gives `RED`, reaching `yellowAfterHours` gives `YELLOW`, less gives `null`.
+- The :Assessment: has `id` `assessmentId`, the `patientId`, no `checkInId`, `createdAt` `now` and one `R5` :Reason: saying how many hours the check-in is late.
+- A `RED` one comes with an :Alert: as `assessCheckIn` makes it.

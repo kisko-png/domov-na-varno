@@ -1,0 +1,20 @@
+---
+import:
+  - stdlib/lang/typescript
+  - stdlib/library/common
+  - stdlib/library/conformance/typescript
+  - domov-core
+description: The library stack of "Domov na varno", imported by its library modules.
+---
+
+***implementation reqs***
+
+- :Implementation: runs on Node.js 22.19 and later: `"engines": { "node": ">=22.19" }` in `package.json`, and no API newer than Node.js 22.19.
+
+- :Implementation: is an ES module package: `"type": "module"` in `package.json`, `module` and `moduleResolution` `NodeNext` in `tsconfig.json`, and every relative import ending in `.js`.
+
+- :Implementation: builds with `npm run build` - `tsc` into `dist/` with type declarations - and exports its public API from `src/index.ts` as named exports, published through the `exports` field of `package.json`.
+
+- :Implementation: defines its errors in `src/errors.ts`, under one base class `DomovError`.
+
+- :UnitTests: use Vitest, next to the code as `<file>.test.ts`, and run with `npx vitest run`.

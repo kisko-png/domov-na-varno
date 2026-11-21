@@ -1,0 +1,16 @@
+---
+import:
+  - domov-server
+requires:
+  - chat
+description: Step 7 - the rest of the HTTP API, the protocol list and the patient detail.
+---
+
+***functional specs***
+
+# get-protocols
+`GET /protocols` returns `200` with `listProtocols()`, the three :Protocol: items in their order, each with its :RiskTier:'s `silence` thresholds and the :DemoNotice:.
+
+# patient-detail
+`GET /patients/{id}` returns `200` with a `PatientDetail` of :DomovApi:: its `PatientSummary` as `GET /patients` gives it, its :Report:, its :PersonalProtocol: and its :PatientInstructions:; an unknown `id` returns `404` with `not_found`.
+- `sentSummaries` are the `sessionId` and `confirmedAt` of its chat summaries with `summaryStatus` `SENT`, the latest first.

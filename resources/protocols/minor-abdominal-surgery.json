@@ -1,0 +1,75 @@
+{
+  "id": "minor-abdominal-surgery",
+  "name": "Manjši trebušni poseg",
+  "riskTier": "LOW",
+  "version": "1.0.0",
+  "procedureKeywords": ["laparoskop", "slepič", "apendektom", "kila", "hernij", "žolčnik", "holecistektom", "abdominal", "appendectomy"],
+  "expectedCurve": {
+    "pain": [{ "day": 1, "value": 4 }, { "day": 2, "value": 4 }, { "day": 3, "value": 3.5 }, { "day": 4, "value": 3 }, { "day": 5, "value": 3 }, { "day": 6, "value": 2.5 }, { "day": 7, "value": 2 }, { "day": 8, "value": 2 }, { "day": 9, "value": 1.5 }, { "day": 10, "value": 1.5 }, { "day": 11, "value": 1 }, { "day": 12, "value": 1 }, { "day": 13, "value": 1 }, { "day": 14, "value": 1 }],
+    "wellbeing": [{ "day": 1, "value": 3.5 }, { "day": 2, "value": 3.5 }, { "day": 3, "value": 3.5 }, { "day": 4, "value": 4 }, { "day": 5, "value": 4 }, { "day": 6, "value": 4 }, { "day": 7, "value": 4 }, { "day": 8, "value": 4 }, { "day": 9, "value": 4.5 }, { "day": 10, "value": 4.5 }, { "day": 11, "value": 4.5 }, { "day": 12, "value": 4.5 }, { "day": 13, "value": 4.5 }, { "day": 14, "value": 4.5 }]
+  },
+  "questions": [
+    { "id": "severe-abdominal-pain", "label": "Močna bolečina v trebuhu, ki se stopnjuje" },
+    { "id": "vomiting", "label": "Ponavljajoče se bruhanje" },
+    { "id": "no-stool-gas", "label": "Ne odvajam blata ali vetrov več kot 2 dni" },
+    { "id": "wound-redness", "label": "Rdečina, toplota ali izcedek iz rane" },
+    { "id": "heavy-bleeding", "label": "Močna krvavitev" },
+    { "id": "shortness-of-breath", "label": "Težko dihanje ali bolečina v prsih" },
+    { "id": "shoulder-pain", "label": "Blaga bolečina v ramenu" },
+    { "id": "bloating", "label": "Napihnjenost" },
+    { "id": "tiredness", "label": "Utrujenost" }
+  ],
+  "redFlags": [
+    { "id": "abd-sob", "symptom": "shortness-of-breath", "severity": "EMERGENCY", "action": "Takoj pokličite 112.", "patterns": ["težko diham", "ne morem dihati", "bolečina v prsih", "zmanjkuje mi zraka"] },
+    { "id": "abd-pain", "symptom": "severe-abdominal-pain", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["trebuh me zelo boli", "močna bolečina v trebuhu", "bolečina v trebuhu se stopnjuje"] },
+    { "id": "abd-vomiting", "symptom": "vomiting", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["bruham", "ves čas bruham", "ne morem zadržati hrane"] },
+    { "id": "abd-bowel", "symptom": "no-stool-gas", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["ne odvajam", "ni vetrov", "zaprtje"] },
+    { "id": "abd-wound", "symptom": "wound-redness", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["rana je rdeča", "rana je topla", "izcedek iz rane", "rana se cedi", "gnoj"] },
+    { "id": "abd-bleeding", "symptom": "heavy-bleeding", "severity": "CONTACT_DOCTOR", "action": "Pritisnite na mesto krvavitve in pokličite zdravnika.", "patterns": ["močno krvavim", "krvavitev", "kri teče"] }
+  ],
+  "surveyGraph": {
+    "start": "onset",
+    "nodes": [
+      { "id": "onset", "topic": "onset", "question": "Kdaj se je težava začela?", "answers": [
+        { "id": "today", "label": "Danes", "next": "severity" },
+        { "id": "days", "label": "Pred nekaj dnevi", "next": "severity" },
+        { "id": "since-surgery", "label": "Od posega", "next": "severity" }
+      ] },
+      { "id": "severity", "topic": "severity", "question": "Kako močna je težava?", "answers": [
+        { "id": "mild", "label": "Blaga", "next": "modifiers" },
+        { "id": "moderate", "label": "Zmerna", "next": "accompanying" },
+        { "id": "severe", "label": "Zelo močna", "next": "accompanying" }
+      ] },
+      { "id": "accompanying", "topic": "accompanying", "question": "Ali imate še katero od teh težav?", "answers": [
+        { "id": "none", "label": "Nič od naštetega", "next": "modifiers" },
+        { "id": "fever", "label": "Vročina ali mrzlica", "next": "modifiers" },
+        { "id": "vomiting", "label": "Ponavljajoče se bruhanje", "next": null, "redFlag": "abd-vomiting" },
+        { "id": "breath", "label": "Težko dihanje", "next": null, "redFlag": "abd-sob" }
+      ] },
+      { "id": "modifiers", "topic": "modifiers", "question": "Kaj težavo poslabša ali olajša?", "answers": [
+        { "id": "eating-worse", "label": "Hrana jo poslabša", "next": null },
+        { "id": "rest-better", "label": "Počitek jo olajša", "next": null },
+        { "id": "nothing-helps", "label": "Nič ne pomaga", "next": null }
+      ] }
+    ]
+  },
+  "guidanceTopics": [
+    { "id": "wound", "title": "Rane", "keywords": ["rana", "rane", "šiv", "obliž"],
+      "watchFor": ["Barvo in toploto kože okoli ran", "Ali se iz ran kaj cedi"],
+      "warningSigns": ["Rdečina, ki se širi", "Izcedek iz rane", "Vročina nad 38 °C"],
+      "whenToCall": "Če opazite katerega od opozorilnih znakov, še danes pokličite zdravnika." },
+    { "id": "digestion", "title": "Prebava", "keywords": ["blato", "odvajanje", "vetrovi", "napihnjen", "prebava", "hrana"],
+      "watchFor": ["Ali odvajate vetrove in blato", "Kako prenašate hrano"],
+      "warningSigns": ["Ponavljajoče se bruhanje", "Več kot 2 dni brez blata in vetrov"],
+      "whenToCall": "Ob ponavljajočem se bruhanju ali zastoju odvajanja še danes pokličite zdravnika." },
+    { "id": "shoulder", "title": "Bolečina v ramenu", "keywords": ["rama", "ramo", "ramenu"],
+      "watchFor": ["Ali bolečina v ramenu iz dneva v dan pojenja"],
+      "warningSigns": ["Bolečina v ramenu skupaj s težkim dihanjem", "Bolečina, ki se stopnjuje"],
+      "whenToCall": "Ob težkem dihanju takoj pokličite 112." }
+  ],
+  "sources": [
+    { "title": "NHS - Laparoscopy (keyhole surgery)", "url": "https://www.nhs.uk/tests-and-treatments/laparoscopy/" },
+    { "title": "NHS - Appendicitis: Treatment", "url": "https://www.nhs.uk/conditions/appendicitis/treatment/" },
+    { "title": "Royal College of Surgeons of England - Recovering from surgery", "url": "https://www.rcseng.ac.uk/patient-care/recovering-from-surgery/" }
+  ]
+}

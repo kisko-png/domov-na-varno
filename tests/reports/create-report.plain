@@ -1,0 +1,14 @@
+---
+module: reports
+func_id: create-report
+---
+
+***conformance tests***
+
+# match-cardiac
+`POST /reports` with `procedure` "Operacija na odprtem srcu - CARDIAC SURGERY" returns `201` with `protocol.id` `cardiac-surgery` and `status` `GREEN`, and `GET /patients` then has 13 items.
+
+***acceptance tests***
+
+# no-match
+`POST /reports` with `procedure` "Ekstrakcija zoba" returns `422` with `no_matching_protocol`, and `GET /patients` still has 12 items.

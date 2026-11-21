@@ -1,0 +1,9 @@
+---
+module: checkins
+func_id: patient-token
+---
+
+***conformance tests***
+
+# missing-or-unknown-token
+`POST /checkins/preview` with `{ "symptoms": [] }` returns `401` with `unauthenticated`, both without `X-Patient-Token` and with it set to "tok-99".

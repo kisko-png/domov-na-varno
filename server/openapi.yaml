@@ -1,0 +1,875 @@
+openapi: 3.0.3
+info:
+  title: Domov na varno API
+  version: 1.0.0
+  description: |
+    Post-discharge home recovery monitoring - hackathon prototype.
+
+    - JSON only, UTF-8 (`application/json; charset=utf-8`), CORS enabled for every origin.
+    - All clinical numbers (curves, tolerances, thresholds) are DEMO VALUES, not clinically validated. Every UI that shows them must say so - the `demoNotice` fields carry the text.
+    - All patients are fictional.
+    - Staff endpoints (tag `staff`) have no authentication (out of scope).
+    - Patient endpoints (tag `patient`) take the magic-link token in the `X-Patient-Token` header; `GET /p/{token}` takes it in the path, as the link itself does. A missing or unknown token is `401 unauthenticated`.
+    - Time is simulated: now = real now + offset, moved by `POST /sim/advance`. Silence (rule R5) and alert escalation are evaluated lazily on every read of `GET /patients`, `GET /alerts` and `GET /brief`.
+    - Check-ins and assessments are append-only: there is no update or delete path, and `PUT`, `PATCH` and `DELETE` on them return `405 method_not_allowed`.
+    - Moments are ISO 8601 with offset; calendar days (`LocalDay`) are in Europe/Ljubljana.
+    - Every error is the one `Error` schema; clients branch on `error.code`, never on `error.message`.
+servers:
+  - url: http://localhost:3000
+tags:
+  - { name: staff, description: "Doctors, nurses and coordinators. No authentication." }
+  - { name: patient, description: "The patient or caregiver, through the magic link." }
+  - { name: sim, description: Demo time travel. }
+
+paths:
+  /reports:
+    post:
+      tags: [staff]
+      operationId: createReport
+      summary: Enter a discharge report; creates the patient with a personalised protocol
+      description: |
+        The procedure selects the protocol (first protocol with a keyword contained in the lowercased procedure).
+        Personalisation: an anticoagulant among the medications adds bleeding as a red flag; restrictions go into the patient instructions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReportCreate" }
+      responses:
+        "201":
+          description: Patient and report created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PatientDetail" }
+        "422":
+          description: "`no_matching_protocol` - no protocol matches the procedure; `validation_error` - invalid body"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                noMatch: { value: { error: { code: no_matching_protocol, message: "Za poseg »Ekstrakcija zoba« ni ustreznega protokola." } } }
+
+  /patients:
+    get:
+      tags: [staff]
+      operationId: listPatients
+      summary: Dashboard - every patient, ordered by risk
+      description: Ordered RED, then YELLOW, then GREEN; within a status, the most recent latest assessment first.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/PatientSummary" } }
+
+  /patients/{id}:
+    get:
+      tags: [staff]
+      operationId: getPatient
+      summary: One patient with report, personalised protocol, instructions and current status
+      parameters: [{ $ref: "#/components/parameters/PatientId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PatientDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /patients/{id}/checkins:
+    get:
+      tags: [staff]
+      operationId: listPatientCheckIns
+      summary: Full check-in history of a patient, oldest first
+      parameters: [{ $ref: "#/components/parameters/PatientId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/CheckIn" } }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /assessments:
+    get:
+      tags: [staff]
+      operationId: listAssessments
+      summary: Assessments of one patient, oldest first (check-in and silence assessments)
+      parameters:
+        - { name: patientId, in: query, required: true, schema: { type: string }, example: pat-01 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Assessment" } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /protocols:
+    get:
+      tags: [staff]
+      operationId: listProtocols
+      summary: The three base protocols (not personalised)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Protocol" } }
+
+  /p/{token}:
+    get:
+      tags: [patient]
+      operationId: getPatientView
+      summary: Magic-link landing - everything the check-in flow and chat need
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string }, example: tok-01 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PatientView" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /checkins/preview:
+    post:
+      tags: [patient]
+      operationId: previewRedFlags
+      summary: Red-flag warning for the symptoms ticked so far, shown at once, before submission
+      parameters: [{ $ref: "#/components/parameters/PatientToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckInPreviewRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RedFlagWarning" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /checkins:
+    post:
+      tags: [patient]
+      operationId: submitCheckIn
+      summary: Save a draft (final=false) or submit the final check-in (final=true)
+      description: |
+        Draft: any subset of the fields, stored per patient and current slot, overwritten by the next draft. Returns 200.
+        Final: wellbeing, pain and symptoms are required (symptoms may be an empty list); stored append-only, assessed at once, the draft of the slot deleted. Returns 201.
+        A RED assessment creates a NURSE alert.
+      parameters: [{ $ref: "#/components/parameters/PatientToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckInSubmit" }
+            examples:
+              draft: { value: { final: false, wellbeing: 3, pain: 5 } }
+              final: { value: { final: true, wellbeing: 3, pain: 5, symptoms: ["tiredness"], temperatureC: 37.4, note: "Slabo sem spal.", filledBy: PATIENT } }
+      responses:
+        "200":
+          description: Draft saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckInDraft" }
+        "201":
+          description: Final check-in stored and assessed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckInResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /checkins/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    put: { tags: [staff, patient], operationId: updateCheckIn, summary: Rejected - check-ins are append-only, responses: { "405": { $ref: "#/components/responses/MethodNotAllowed" } } }
+    patch: { tags: [staff, patient], operationId: patchCheckIn, summary: Rejected - check-ins are append-only, responses: { "405": { $ref: "#/components/responses/MethodNotAllowed" } } }
+    delete: { tags: [staff, patient], operationId: deleteCheckIn, summary: Rejected - check-ins are append-only, responses: { "405": { $ref: "#/components/responses/MethodNotAllowed" } } }
+
+  /assessments/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    put: { tags: [staff], operationId: updateAssessment, summary: Rejected - assessments are append-only, responses: { "405": { $ref: "#/components/responses/MethodNotAllowed" } } }
+    patch: { tags: [staff], operationId: patchAssessment, summary: Rejected - assessments are append-only, responses: { "405": { $ref: "#/components/responses/MethodNotAllowed" } } }
+    delete: { tags: [staff], operationId: deleteAssessment, summary: Rejected - assessments are append-only, responses: { "405": { $ref: "#/components/responses/MethodNotAllowed" } } }
+
+  /chat:
+    post:
+      tags: [patient]
+      operationId: sendChatMessage
+      summary: Send a message or a survey answer; starts a session when sessionId is absent
+      description: |
+        Exactly one of `text`, `surveyAnswerId`, `startSurvey` is given.
+        Every message passes the input guard first (red-flag patterns plus the LLM classifier); every reply passes the output guard last.
+      parameters: [{ $ref: "#/components/parameters/PatientToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatMessageIn" }
+            examples:
+              question: { value: { text: "Rana je malo rdeča, ali je to normalno?" } }
+              startSurvey: { value: { sessionId: chat-1, startSurvey: true } }
+              answer: { value: { sessionId: chat-1, surveyAnswerId: onset-today } }
+      responses:
+        "200":
+          description: Bot reply
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatReply" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /chat/{id}/end:
+    post:
+      tags: [patient]
+      operationId: endChat
+      summary: End the conversation and compile the summary draft for the patient to review
+      parameters: [{ $ref: "#/components/parameters/SessionId" }, { $ref: "#/components/parameters/PatientToken" }]
+      responses:
+        "200":
+          description: Summary draft (summaryStatus DRAFT)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatSummary" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /chat/{id}/summary:
+    get:
+      tags: [patient, staff]
+      operationId: getChatSummary
+      summary: The summary of a session
+      description: With the session's patient token, in any status. Without a token (staff), only once SENT; otherwise 404.
+      parameters:
+        - { $ref: "#/components/parameters/SessionId" }
+        - { name: X-Patient-Token, in: header, required: false, schema: { type: string }, description: The patient's magic-link token; omitted by staff }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatSummary" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /chat/{id}/summary/confirm:
+    post:
+      tags: [patient]
+      operationId: confirmChatSummary
+      summary: The patient confirms the summary; only then is it sent to the care team
+      parameters: [{ $ref: "#/components/parameters/SessionId" }, { $ref: "#/components/parameters/PatientToken" }]
+      responses:
+        "200":
+          description: Confirmed and sent (summaryStatus SENT, confirmedAt set)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatSummary" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: "`conflict` - the session has no summary draft yet"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /brief:
+    get:
+      tags: [staff]
+      operationId: getBrief
+      summary: Morning brief from the previous day's data, RED first, with a call script per patient
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Brief" }
+
+  /alerts:
+    get:
+      tags: [staff]
+      operationId: listAlerts
+      summary: Alerts, newest first
+      description: On every read, a NURSE alert unacknowledged for 15 minutes or more is escalated - escalatedAt set and a COORDINATOR alert created for the same assessment.
+      parameters:
+        - { name: role, in: query, required: false, schema: { $ref: "#/components/schemas/RecipientRole" } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/AlertView" } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /alerts/{id}/ack:
+    post:
+      tags: [staff]
+      operationId: acknowledgeAlert
+      summary: Acknowledge an alert; acknowledging again keeps the first acknowledgedAt
+      parameters: [{ name: id, in: path, required: true, schema: { type: string }, example: alr-1 }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alert" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /reminders:
+    get:
+      tags: [staff, sim]
+      operationId: listReminders
+      summary: Simulated reminder log, newest first
+      description: A FIRST reminder at the preferred check-in time, a FOLLOW_UP 3 hours later, while the slot is not checked in.
+      parameters:
+        - { name: patientId, in: query, required: false, schema: { type: string }, example: pat-05 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Reminder" } }
+
+  /sim/now:
+    get:
+      tags: [sim]
+      operationId: getClock
+      summary: The simulated now and its offset
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimClock" }
+
+  /sim/advance:
+    post:
+      tags: [sim]
+      operationId: advanceClock
+      summary: Move the simulated clock forward (1440 minutes = one day)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SimAdvance" }
+      responses:
+        "200":
+          description: The new simulated now
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimClock" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+components:
+  parameters:
+    PatientId: { name: id, in: path, required: true, schema: { type: string }, example: pat-01 }
+    SessionId: { name: id, in: path, required: true, schema: { type: string }, example: chat-1 }
+    PatientToken: { name: X-Patient-Token, in: header, required: true, schema: { type: string }, example: tok-01, description: The patient's magic-link token }
+
+  responses:
+    NotFound:
+      description: "`not_found`"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: not_found, message: "Ne obstaja." } }
+    Unauthenticated:
+      description: "`unauthenticated` - missing or unknown X-Patient-Token"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: unauthenticated, message: "Povezava ni veljavna." } }
+    ValidationError:
+      description: "`validation_error` - a field is missing or invalid; details lists each one"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: validation_error, message: "Manjkajo obvezni podatki.", details: [{ field: pain, message: "Obvezno polje." }] } }
+    MethodNotAllowed:
+      description: "`method_not_allowed` - check-ins and assessments are append-only"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: method_not_allowed, message: "Zapisov ni mogoče spreminjati ali brisati." } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [validation_error, not_found, unauthenticated, conflict, method_not_allowed, no_matching_protocol, internal_error]
+            message: { type: string, description: Slovenian text for a person; not for branching }
+            details:
+              type: array
+              description: Only with validation_error
+              items:
+                type: object
+                required: [field, message]
+                properties: { field: { type: string, example: pain }, message: { type: string, example: "Obvezno polje." } }
+
+    Moment: { type: string, format: date-time, description: ISO 8601 with offset, example: "2026-11-21T08:00:00+01:00" }
+    LocalDay: { type: string, format: date, description: Calendar date in Europe/Ljubljana, example: "2026-11-13" }
+    Status: { type: string, enum: [GREEN, YELLOW, RED] }
+    RiskTier: { type: string, enum: [HIGH, MEDIUM, LOW] }
+    RecipientRole: { type: string, enum: [NURSE, COORDINATOR] }
+    RuleId: { type: string, enum: [R0, R1, R2, R3, R4, R5], description: "R0 = no rule triggered (GREEN); R1 red flag, R2 temperature, R3 curve, R4 pain jump, R5 silence" }
+    FilledBy: { type: string, enum: [PATIENT, CAREGIVER] }
+
+    CurvePoint:
+      type: object
+      required: [day, value]
+      properties: { day: { type: integer, minimum: 1, example: 4 }, value: { type: number, example: 5 } }
+
+    ScheduleRule:
+      type: object
+      required: [fromDay, toDay]
+      description: Either perDay check-ins on every day of the range, or one check-in on each listed day.
+      properties:
+        fromDay: { type: integer, example: 1 }
+        toDay: { type: integer, example: 3 }
+        perDay: { type: integer, enum: [1, 2], example: 2 }
+        days: { type: array, items: { type: integer }, example: [8, 10, 12] }
+
+    Symptom:
+      type: object
+      required: [id, label]
+      properties: { id: { type: string, example: calf-pain-swelling }, label: { type: string, example: "Bolečina ali oteklina v mečih" } }
+
+    RedFlag:
+      type: object
+      required: [id, symptom, severity, action]
+      properties:
+        id: { type: string, example: shortness-of-breath }
+        symptom: { type: string, description: The id of a Symptom, example: shortness-of-breath }
+        severity: { type: string, enum: [CONTACT_DOCTOR, EMERGENCY] }
+        action: { type: string, example: "Takoj pokličite 112." }
+
+    SurveyAnswer:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string, example: onset-today }
+        label: { type: string, example: "Danes" }
+
+    SurveyQuestion:
+      type: object
+      required: [nodeId, topic, question, answers]
+      properties:
+        nodeId: { type: string, example: onset }
+        topic: { type: string, enum: [onset, severity, accompanying, modifiers] }
+        question: { type: string, example: "Kdaj se je težava začela?" }
+        answers: { type: array, minItems: 1, items: { $ref: "#/components/schemas/SurveyAnswer" } }
+
+    SurveyNode:
+      allOf:
+        - { $ref: "#/components/schemas/SurveyQuestion" }
+        - type: object
+          properties:
+            answers:
+              type: array
+              items:
+                type: object
+                required: [id, label, next]
+                properties:
+                  id: { type: string }
+                  label: { type: string }
+                  next: { type: string, nullable: true, description: The next node id; null ends the survey }
+                  redFlag: { type: string, description: A RedFlag id; choosing this answer interrupts the survey and escalates }
+
+    GuidanceTopic:
+      type: object
+      required: [id, title, watchFor, warningSigns, whenToCall]
+      properties:
+        id: { type: string, example: wound }
+        title: { type: string, example: "Operativna rana" }
+        watchFor: { type: array, items: { type: string }, example: ["Ali je rana suha in čista"] }
+        warningSigns: { type: array, items: { type: string }, example: ["Rdečina, toplota ali izcedek iz rane"] }
+        whenToCall: { type: string, example: "Če se rdečina širi ali imate vročino, pokličite zdravnika." }
+
+    Protocol:
+      type: object
+      description: A monitoring protocol. In PatientDetail and PatientView it is the patient's personalised copy.
+      required: [id, name, riskTier, version, checkInSchedule, durationDays, painTolerance, silence, expectedCurve, questions, redFlags, surveyGraph, guidanceTopics, sources]
+      properties:
+        id: { type: string, example: hip-replacement }
+        name: { type: string, example: "Zamenjava kolka" }
+        riskTier: { $ref: "#/components/schemas/RiskTier" }
+        version: { type: string, example: "1.0.0" }
+        checkInSchedule: { type: array, items: { $ref: "#/components/schemas/ScheduleRule" } }
+        durationDays: { type: integer, example: 14 }
+        painTolerance: { type: number, example: 2 }
+        silence:
+          type: object
+          required: [yellowAfterHours, redAfterHours]
+          properties: { yellowAfterHours: { type: integer, example: 24 }, redAfterHours: { type: integer, example: 48 } }
+        expectedCurve:
+          type: object
+          required: [pain, wellbeing]
+          properties:
+            pain: { type: array, items: { $ref: "#/components/schemas/CurvePoint" } }
+            wellbeing: { type: array, items: { $ref: "#/components/schemas/CurvePoint" } }
+        questions: { type: array, items: { $ref: "#/components/schemas/Symptom" }, description: The daily symptom checklist }
+        redFlags: { type: array, items: { $ref: "#/components/schemas/RedFlag" } }
+        surveyGraph:
+          type: object
+          required: [start, nodes]
+          properties:
+            start: { type: string, example: onset }
+            nodes: { type: array, items: { $ref: "#/components/schemas/SurveyNode" } }
+        guidanceTopics: { type: array, items: { $ref: "#/components/schemas/GuidanceTopic" } }
+        sources:
+          type: array
+          minItems: 2
+          items:
+            type: object
+            required: [title, url]
+            properties: { title: { type: string, example: "NHS - Hip replacement: recovery" }, url: { type: string, format: uri, example: "https://www.nhs.uk/conditions/hip-replacement/recovery/" } }
+        demoNotice: { type: string, example: "Vse klinične vrednosti so demonstracijske in niso klinično preverjene." }
+
+    ReportCreate:
+      type: object
+      required: [patient, procedure, procedureDate, medications, specialWarnings, restrictions, recommendations, doctorContactPhone]
+      properties:
+        patient:
+          type: object
+          required: [name, phone, dischargeDate, preferredCheckInTime]
+          properties:
+            name: { type: string, minLength: 1, example: "Marija Novak" }
+            phone: { type: string, example: "+386 40 123 456" }
+            dischargeDate: { $ref: "#/components/schemas/LocalDay" }
+            preferredCheckInTime: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", example: "08:00" }
+            caregiverName: { type: string, example: "Janez Novak" }
+        procedure: { type: string, minLength: 1, example: "Totalna endoproteza kolka (hip replacement), desno" }
+        procedureDate: { $ref: "#/components/schemas/LocalDay" }
+        medications: { type: array, items: { type: string }, example: ["apixaban 2,5 mg 2x dnevno", "paracetamol 1 g po potrebi"] }
+        specialWarnings: { type: array, items: { type: string }, example: ["Pazite na znake krvavitve."] }
+        restrictions: { type: array, items: { type: string }, example: ["Ne upogibajte kolka čez 90° 6 tednov."] }
+        recommendations: { type: string, example: "Vsak dan hodite z berglami vsaj 3-krat po 10 minut." }
+        doctorContactPhone: { type: string, example: "+386 1 522 50 50" }
+
+    Report:
+      allOf:
+        - type: object
+          required: [id, patientId]
+          properties: { id: { type: string, example: rep-01 }, patientId: { type: string, example: pat-01 } }
+        - type: object
+          required: [procedure, procedureDate, medications, specialWarnings, restrictions, recommendations, doctorContactPhone]
+          properties:
+            procedure: { type: string }
+            procedureDate: { $ref: "#/components/schemas/LocalDay" }
+            medications: { type: array, items: { type: string } }
+            specialWarnings: { type: array, items: { type: string } }
+            restrictions: { type: array, items: { type: string } }
+            recommendations: { type: string }
+            doctorContactPhone: { type: string }
+
+    Patient:
+      type: object
+      required: [id, name, phone, dischargeDate, protocolId, reportId, preferredCheckInTime, accessToken]
+      properties:
+        id: { type: string, example: pat-01 }
+        name: { type: string, example: "Marija Novak" }
+        phone: { type: string, example: "+386 40 000 001" }
+        dischargeDate: { $ref: "#/components/schemas/LocalDay" }
+        protocolId: { type: string, example: hip-replacement }
+        reportId: { type: string, example: rep-01 }
+        caregiverName: { type: string, example: "Janez Novak" }
+        preferredCheckInTime: { type: string, example: "08:00" }
+        accessToken: { type: string, example: tok-01, description: "Magic link: /p/{accessToken}" }
+
+    Reason:
+      type: object
+      required: [text, ruleId]
+      properties:
+        text: { type: string, example: "Temperatura 38.2 °C je povišana." }
+        ruleId: { $ref: "#/components/schemas/RuleId" }
+
+    Assessment:
+      type: object
+      required: [id, patientId, status, reasons, createdAt]
+      properties:
+        id: { type: string, example: asm-12 }
+        patientId: { type: string, example: pat-01 }
+        checkInId: { type: string, description: Absent for a silence (R5) assessment, example: chk-01-07-1 }
+        status: { $ref: "#/components/schemas/Status" }
+        reasons: { type: array, minItems: 1, items: { $ref: "#/components/schemas/Reason" } }
+        createdAt: { $ref: "#/components/schemas/Moment" }
+
+    PatientSummary:
+      type: object
+      required: [patient, protocolName, riskTier, dayAfterDischarge, status, openAlerts]
+      properties:
+        patient: { $ref: "#/components/schemas/Patient" }
+        protocolName: { type: string, example: "Zamenjava kolka" }
+        riskTier: { $ref: "#/components/schemas/RiskTier" }
+        dayAfterDischarge: { type: integer, description: 0 on the discharge day, example: 8 }
+        status: { $ref: "#/components/schemas/Status" }
+        latestAssessment: { $ref: "#/components/schemas/Assessment" }
+        lastCheckInAt: { $ref: "#/components/schemas/Moment" }
+        openAlerts: { type: integer, description: Alerts without acknowledgedAt, example: 1 }
+
+    PatientDetail:
+      allOf:
+        - { $ref: "#/components/schemas/PatientSummary" }
+        - type: object
+          required: [report, protocol, patientInstructions, sentSummaries]
+          properties:
+            report: { $ref: "#/components/schemas/Report" }
+            protocol: { $ref: "#/components/schemas/Protocol" }
+            patientInstructions: { type: array, items: { type: string }, description: "Special warnings, then restrictions, then recommendations", example: ["Pazite na znake krvavitve.", "Ne upogibajte kolka čez 90° 6 tednov."] }
+            sentSummaries:
+              type: array
+              description: Chat summaries the patient confirmed and sent, newest first
+              items:
+                type: object
+                required: [sessionId, confirmedAt]
+                properties: { sessionId: { type: string, example: chat-1 }, confirmedAt: { $ref: "#/components/schemas/Moment" } }
+
+    PatientView:
+      type: object
+      required: [patientName, dayAfterDischarge, protocol, doctorPhone, patientInstructions, currentSlot, demoNotice]
+      properties:
+        patientName: { type: string, example: "Marija Novak" }
+        dayAfterDischarge: { type: integer, example: 8 }
+        protocol: { $ref: "#/components/schemas/Protocol" }
+        doctorPhone: { type: string, example: "+386 1 522 50 50" }
+        patientInstructions: { type: array, items: { type: string } }
+        currentSlot:
+          type: object
+          required: [day, index, dueAt]
+          properties: { day: { type: integer, example: 8 }, index: { type: integer, enum: [1, 2] }, dueAt: { $ref: "#/components/schemas/Moment" } }
+        draft: { $ref: "#/components/schemas/CheckInDraft" }
+        pendingReminder: { $ref: "#/components/schemas/Reminder" }
+        demoNotice: { type: string, example: "Vse klinične vrednosti so demonstracijske in niso klinično preverjene." }
+
+    CheckInFields:
+      type: object
+      properties:
+        wellbeing: { type: integer, minimum: 1, maximum: 5, example: 3 }
+        pain: { type: integer, minimum: 0, maximum: 10, example: 5 }
+        symptoms: { type: array, items: { type: string }, description: Symptom ids of the patient's protocol, example: ["tiredness"] }
+        temperatureC: { type: number, minimum: 34, maximum: 43, example: 37.4 }
+        photoRef: { type: string, description: A reference to a photo (upload is out of scope), example: "foto-rana-01.jpg" }
+        note: { type: string, maxLength: 2000, example: "Slabo sem spal." }
+        filledBy: { $ref: "#/components/schemas/FilledBy" }
+
+    CheckInSubmit:
+      allOf:
+        - { $ref: "#/components/schemas/CheckInFields" }
+        - type: object
+          required: [final]
+          properties: { final: { type: boolean, description: "false - save a draft; true - submit (wellbeing, pain, symptoms required)" } }
+
+    CheckInPreviewRequest:
+      type: object
+      required: [symptoms]
+      properties: { symptoms: { type: array, items: { type: string }, example: ["shortness-of-breath"] } }
+
+    CheckInDraft:
+      allOf:
+        - { $ref: "#/components/schemas/CheckInFields" }
+        - type: object
+          required: [patientId, slotDay, slotIndex, updatedAt]
+          properties:
+            patientId: { type: string, example: pat-01 }
+            slotDay: { type: integer, example: 8 }
+            slotIndex: { type: integer, enum: [1, 2] }
+            updatedAt: { $ref: "#/components/schemas/Moment" }
+
+    CheckIn:
+      type: object
+      required: [id, patientId, protocolVersion, dayAfterDischarge, timestamp, wellbeing, pain, symptoms, filledBy]
+      properties:
+        id: { type: string, example: chk-1 }
+        patientId: { type: string, example: pat-01 }
+        protocolVersion: { type: string, example: "1.0.0" }
+        dayAfterDischarge: { type: integer, example: 8 }
+        timestamp: { $ref: "#/components/schemas/Moment" }
+        wellbeing: { type: integer, minimum: 1, maximum: 5 }
+        pain: { type: integer, minimum: 0, maximum: 10 }
+        symptoms: { type: array, items: { type: string } }
+        temperatureC: { type: number }
+        photoRef: { type: string }
+        note: { type: string }
+        filledBy: { $ref: "#/components/schemas/FilledBy" }
+
+    RedFlagWarning:
+      type: object
+      required: [showContactDoctor, showEmergency112, doctorPhone, redFlags]
+      properties:
+        showContactDoctor: { type: boolean, description: "Show \"Kontaktirajte zdravnika\" with doctorPhone" }
+        showEmergency112: { type: boolean, description: Also show 112 - an EMERGENCY red flag }
+        doctorPhone: { type: string, example: "+386 1 522 50 50" }
+        message: { type: string, description: Present when showContactDoctor, example: "Kontaktirajte zdravnika: +386 1 522 50 50. Ob nujnem stanju pokličite 112." }
+        redFlags: { type: array, items: { $ref: "#/components/schemas/RedFlag" } }
+
+    CheckInResult:
+      type: object
+      required: [checkIn, assessment, comparison, showContactDoctor, showEmergency112, doctorPhone, reassuranceAllowed, demoNotice]
+      properties:
+        checkIn: { $ref: "#/components/schemas/CheckIn" }
+        assessment: { $ref: "#/components/schemas/Assessment" }
+        comparison:
+          type: object
+          required: [pain, wellbeing]
+          properties:
+            pain:
+              type: object
+              required: [actual, expected, tolerance]
+              properties: { actual: { type: number, example: 5 }, expected: { type: number, example: 3 }, tolerance: { type: number, example: 2 } }
+            wellbeing:
+              type: object
+              required: [actual, expected, tolerance]
+              properties: { actual: { type: number, example: 3 }, expected: { type: number, example: 4 }, tolerance: { type: number, description: "R3: 2 or more points below expected is YELLOW", example: 2 } }
+        showContactDoctor: { type: boolean }
+        showEmergency112: { type: boolean }
+        doctorPhone: { type: string, example: "+386 1 522 50 50" }
+        alertCreated: { type: boolean, description: True when the assessment is RED }
+        reassuranceAllowed: { type: boolean, description: True only when assessment.status is GREEN }
+        reassuranceText: { type: string, enum: ["v okviru pričakovanega za ta dan"], description: Present only when reassuranceAllowed }
+        demoNotice: { type: string, example: "Vse klinične vrednosti so demonstracijske in niso klinično preverjene." }
+
+    Alert:
+      type: object
+      required: [id, assessmentId, recipientRole, createdAt]
+      properties:
+        id: { type: string, example: alr-1 }
+        assessmentId: { type: string, example: asm-12 }
+        recipientRole: { $ref: "#/components/schemas/RecipientRole" }
+        createdAt: { $ref: "#/components/schemas/Moment" }
+        acknowledgedAt: { $ref: "#/components/schemas/Moment" }
+        escalatedAt: { $ref: "#/components/schemas/Moment" }
+
+    AlertView:
+      allOf:
+        - { $ref: "#/components/schemas/Alert" }
+        - type: object
+          required: [patientId, patientName, status, reasons]
+          properties:
+            patientId: { type: string, example: pat-05 }
+            patientName: { type: string, example: "Ana Kovač" }
+            status: { $ref: "#/components/schemas/Status" }
+            reasons: { type: array, items: { $ref: "#/components/schemas/Reason" } }
+
+    ChatMessageIn:
+      type: object
+      description: Exactly one of text, surveyAnswerId, startSurvey.
+      properties:
+        sessionId: { type: string, description: Absent starts a new session, example: chat-1 }
+        text: { type: string, minLength: 1, maxLength: 2000, example: "Ali naj vzamem ibuprofen?" }
+        surveyAnswerId: { type: string, description: An answer id of the question last asked, example: onset-today }
+        startSurvey: { type: boolean }
+
+    ChatReply:
+      type: object
+      required: [sessionId, type, text, watchFor, alertCreated, showContactDoctor, showEmergency112, doctorPhone]
+      properties:
+        sessionId: { type: string, example: chat-1 }
+        type:
+          type: string
+          enum: [GUIDANCE, SURVEY_QUESTION, ESCALATION, NOT_COVERED, REFUSAL, SUMMARY_READY]
+          description: |
+            GUIDANCE - what to watch for on a protocol topic.
+            SURVEY_QUESTION - nextSurveyQuestion holds the next question.
+            ESCALATION - a red flag in a message or survey answer; no advice, a RED alert created.
+            NOT_COVERED - the protocol does not cover it; the survey is offered.
+            REFUSAL - a question about medication, doses, procedures or tests, referred to the doctor or pharmacist and recorded; also the output guard's safe fallback.
+            SUMMARY_READY - the survey ended; the summary can be compiled with POST /chat/{id}/end.
+        text: { type: string, example: "Opazujte, ali je rana suha in čista." }
+        watchFor: { type: array, items: { type: string }, description: Empty unless GUIDANCE, example: ["Ali je rana suha in čista"] }
+        warningSigns: { type: array, items: { type: string }, example: ["Rdečina, toplota ali izcedek iz rane"] }
+        whenToCall: { type: string, example: "Če se rdečina širi ali imate vročino, pokličite zdravnika." }
+        nextSurveyQuestion: { $ref: "#/components/schemas/SurveyQuestion" }
+        alertCreated: { type: boolean }
+        alertId: { type: string, description: Present when alertCreated, example: alr-7 }
+        showContactDoctor: { type: boolean }
+        showEmergency112: { type: boolean }
+        doctorPhone: { type: string, example: "+386 1 522 50 50" }
+
+    TranscriptEntry:
+      type: object
+      required: [role, text, at]
+      properties:
+        role: { type: string, enum: [PATIENT, BOT] }
+        text: { type: string, example: "Rana je malo rdeča, ali je to normalno?" }
+        at: { $ref: "#/components/schemas/Moment" }
+
+    ChatSummary:
+      type: object
+      required: [id, sessionId, patientId, fullTranscript, surveyAnswers, botGuidanceGiven, patientQuestions, createdAt, summaryStatus]
+      properties:
+        id: { type: string, example: sum-1 }
+        sessionId: { type: string, example: chat-1 }
+        patientId: { type: string, example: pat-01 }
+        fullTranscript: { type: array, items: { $ref: "#/components/schemas/TranscriptEntry" } }
+        surveyAnswers:
+          type: array
+          items:
+            type: object
+            required: [nodeId, question, answerId, answer]
+            properties:
+              nodeId: { type: string, example: onset }
+              question: { type: string, example: "Kdaj se je težava začela?" }
+              answerId: { type: string, example: onset-today }
+              answer: { type: string, example: "Danes" }
+        botGuidanceGiven: { type: array, items: { type: string } }
+        patientQuestions: { type: array, items: { type: string }, example: ["Ali naj vzamem ibuprofen?"] }
+        createdAt: { $ref: "#/components/schemas/Moment" }
+        confirmedAt: { $ref: "#/components/schemas/Moment" }
+        summaryStatus: { type: string, enum: [DRAFT, SENT], description: "DRAFT after POST /chat/{id}/end; SENT once the patient confirms" }
+
+    Brief:
+      type: object
+      required: [forDay, generatedAt, entries, demoNotice]
+      properties:
+        forDay: { $ref: "#/components/schemas/LocalDay" }
+        generatedAt: { $ref: "#/components/schemas/Moment" }
+        demoNotice: { type: string, example: "Vse klinične vrednosti so demonstracijske in niso klinično preverjene." }
+        entries:
+          type: array
+          description: RED first, then YELLOW, then GREEN
+          items:
+            type: object
+            required: [patientId, patientName, status, reasons, callScript]
+            properties:
+              patientId: { type: string, example: pat-01 }
+              patientName: { type: string, example: "Marija Novak" }
+              status: { $ref: "#/components/schemas/Status" }
+              reasons: { type: array, items: { $ref: "#/components/schemas/Reason" } }
+              callScript: { type: string, example: "Pokličite Marija Novak (+386 40 000 001): Temperatura 38.1 °C je povišana." }
+
+    Reminder:
+      type: object
+      required: [id, patientId, kind, sentAt, draftPending]
+      properties:
+        id: { type: string, example: rem-1 }
+        patientId: { type: string, example: pat-05 }
+        kind: { type: string, enum: [FIRST, FOLLOW_UP], description: "FIRST at the preferred time, FOLLOW_UP 3 hours later" }
+        sentAt: { $ref: "#/components/schemas/Moment" }
+        slotDay: { type: integer, example: 5 }
+        slotIndex: { type: integer, enum: [1, 2] }
+        draftPending: { type: boolean, description: The patient has an unfinished draft for that slot }
+        text: { type: string, example: "Pozdravljeni, čas je za današnji kratek vprašalnik. Nadaljujte, kjer ste ostali." }
+
+    SimAdvance:
+      type: object
+      required: [minutes]
+      properties: { minutes: { type: integer, minimum: 1, example: 1440 } }
+
+    SimClock:
+      type: object
+      required: [now, offsetMinutes]
+      properties:
+        now: { $ref: "#/components/schemas/Moment" }
+        offsetMinutes: { type: integer, example: 1440 }

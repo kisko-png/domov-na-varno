@@ -1,0 +1,37 @@
+---
+import:
+  - domov-server
+requires:
+  - checkins
+description: Step 4 - alerts, escalation, the dashboard and the morning brief.
+---
+
+***functional specs***
+
+# silence-on-read
+Each `GET /patients`, `GET /alerts` and `GET /brief` first runs `assessSilence` for every :Patient: at :SimNow:, its ids continuing the `asm-<n>` and `alr-<n>` counts.
+- The :Assessment: and :Alert: it returns are kept, unless the :Patient: already has an :Assessment: of silence with the same `status` made after its latest :CheckIn:.
+
+# list-patients
+`GET /patients` returns `200` with one `PatientSummary` of :DomovApi: for each :Patient:.
+- `status` is its :PatientStatus:, `latestAssessment` its latest :Assessment:, `openAlerts` the number of its :Alert: items without `acknowledgedAt`, and `dayAfterDischarge` the :DayAfterDischarge: of :SimNow:.
+- `protocolName` and `riskTier` are those of its :Protocol:; `lastCheckInAt` is the `timestamp` of its latest :CheckIn:, when it has one.
+- The list is ordered `RED`, then `YELLOW`, then `GREEN`; within a status, the latest `latestAssessment.createdAt` first.
+
+# list-alerts
+`GET /alerts` returns `200` with an `AlertView` of :DomovApi: for every :Alert:, the latest `createdAt` first.
+- `patientId`, `patientName`, `status` and `reasons` are those of its :Assessment: and that :Assessment:'s :Patient:.
+- With `role`, only the :Alert: items of that `recipientRole` are returned.
+
+# escalate-alerts
+Each `GET /alerts`, `GET /patients` and `GET /brief`, after silence, escalates every `NURSE` :Alert: without `acknowledgedAt` or `escalatedAt` whose `createdAt` is 15 minutes or more before :SimNow:.
+- The :Alert: gets `escalatedAt` :SimNow:, and a new :Alert: is kept for the same `assessmentId`, with `recipientRole` `COORDINATOR` and `createdAt` :SimNow:.
+
+# ack-alert
+`POST /alerts/{id}/ack` sets `acknowledgedAt` of the :Alert: to :SimNow:, unless it is set already, and returns `200` with the :Alert:; an unknown `id` returns `404` with `not_found`.
+
+# brief
+`GET /brief` returns `200` with a `Brief` of :DomovApi: of every :Patient:, built from a template.
+- `forDay` is the :LocalDay: before that of :SimNow:, `generatedAt` :SimNow:, and `demoNotice` the :DemoNotice:.
+- Each entry has the :Patient:'s :PatientStatus: and the reasons of its latest :Assessment:, ordered as `GET /patients` orders them.
+- `callScript` is "Pokličite <name> (<phone>): " followed by the reason texts joined by "; " for a `RED` or `YELLOW` entry, and "Klic ni potreben." for a `GREEN` one.

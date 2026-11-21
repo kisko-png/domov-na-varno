@@ -1,0 +1,56 @@
+---
+import:
+  - domov-server
+requires:
+  - triage
+description: Step 3 - append-only storage and the check-in service.
+---
+
+***implementation reqs***
+
+- :Db: has no `UPDATE` or `DELETE` path for :CheckIn: and :Assessment: items: their tables have triggers that abort both, and no repository method changes or removes one.
+
+***functional specs***
+
+# sim-clock
+`GET /sim/now` returns `200` with `{ now, offsetMinutes }` of :SimNow:; `POST /sim/advance` with `{ minutes }` adds `minutes` to the offset and returns `200` with the new `{ now, offsetMinutes }`.
+
+# seed-store
+When the service starts with an empty :Db:, :Store: gets `buildSeed(now)` for the :SimNow: of the start.
+- Each seeded :CheckIn: is assessed with `assessCheckIn`, in time order, its :History: being the :Patient:'s seeded :CheckIn: items before it, and `now` its `timestamp`.
+- Each :Assessment: and :Alert: made is kept; their ids are `asm-<n>` and `alr-<n>`, n counting from 1 in the order they are made.
+
+# patient-token
+A patient route reads the :Patient: from the `X-Patient-Token` header; a missing or unknown token returns `401` with `unauthenticated`.
+
+# patient-view
+`GET /p/{token}` returns `200` with a `PatientView` of :DomovApi: of the :Patient: with that `accessToken`, or `404` with `not_found`.
+- `dayAfterDischarge` is that of :SimNow:; `protocol` its :Protocol:; `doctorPhone` the `doctorContactPhone` of its :Report:; `patientInstructions` its :PatientInstructions:; `currentSlot` its :CurrentSlot:; `demoNotice` the :DemoNotice:.
+- `draft` is its :Draft: of its :CurrentSlot:, when there is one; `pendingReminder` its latest :Reminder: sent after its latest :CheckIn:, when there is one.
+
+# red-flag-preview
+`POST /checkins/preview` with `{ symptoms }` returns `200` with the :RedFlagWarning: of those ids for the :Patient: of the token.
+
+# save-draft
+`POST /checkins` with `final` `false` saves the fields given as the :Draft: of the :Patient:'s :CurrentSlot:, replacing an earlier one, and returns `200` with it.
+- `slotDay` and `slotIndex` are those of the :CurrentSlot:, and `updatedAt` is :SimNow:.
+
+# submit-check-in
+`POST /checkins` with `final` `true` stores a :CheckIn: and its `assessCheckIn` result, and returns `201` with a `CheckInResult` of :DomovApi:.
+- Without `wellbeing`, `pain` or `symptoms`, it returns `422` with `validation_error` and stores nothing.
+- The :CheckIn: has id `chk-<n>`, n counting from 1, `timestamp` :SimNow:, the :DayAfterDischarge: of :SimNow:, the :Protocol:'s `version` as `protocolVersion`, and `filledBy` `PATIENT` when not given; its :History: is the :Patient:'s earlier :CheckIn: items.
+- `showContactDoctor`, `showEmergency112` and `doctorPhone` are those of the :RedFlagWarning: of its `symptoms`; `alertCreated` is whether an :Alert: was made.
+- `comparison` holds its `pain` and `wellbeing` as `actual` beside the `expectedForDay` values of its day as `expected`, with `painTolerance` as the pain `tolerance` and 2 as the wellbeing `tolerance`.
+- `reassuranceAllowed` is whether `status` is `GREEN`; only then is `reassuranceText` "v okviru pričakovanega za ta dan"; `demoNotice` is the :DemoNotice:.
+- The :Draft: of its :CurrentSlot: is deleted.
+
+# history-read
+`GET /patients/{id}/checkins` returns `200` with the :Patient:'s :CheckIn: items, and `GET /assessments?patientId=<id>` with its :Assessment: items, both oldest first; an unknown id returns `404` with `not_found`.
+
+# append-only
+`PUT`, `PATCH` and `DELETE` on `/checkins/{id}` and `/assessments/{id}` return `405` with `method_not_allowed` and change nothing.
+
+# reminders
+`GET /reminders` returns `200` with the :Reminder: items, the latest `sentAt` first, only those of `patientId` when it is given.
+- Each read first adds, for every :CheckInSlot: due at or before :SimNow: after a :Patient:'s latest :CheckIn: and not covered, a `FIRST` :Reminder: sent at its `dueAt` and, once 3 hours have passed, a `FOLLOW_UP` sent at `dueAt` plus 3 hours, each once; ids are `rem-<n>`.
+- `slotDay` and `slotIndex` are those of the slot, `text` a Slovenian reminder to check in, and `draftPending` whether the :Patient: has a :Draft: of that slot.

@@ -1,0 +1,15 @@
+---
+module: triage
+func_id: assess-silence
+---
+
+***conformance tests***
+
+# t4-silence
+T4: two days without a check-in gives RED for MEDIUM; one missed day gives RED for HIGH.
+
+# t5-reason-rule-id
+T5: every Assessment has at least one reason with a ruleId.
+
+# t14-risk-tier
+T14: the risk tier sets check-in frequency, duration and silence escalation speed.

@@ -1,0 +1,9 @@
+---
+module: triage
+func_id: rule-red-flag
+---
+
+***conformance tests***
+
+# t1-red-flag-red-alert
+T1: any check-in with a red flag yields RED and creates an Alert.

@@ -1,0 +1,65 @@
+---
+import:
+  - domov-server
+requires:
+  - reports
+description: Step 6 - the safety-bounded chatbot - guards, survey engine and summary - through LlmClient.
+---
+
+***definitions***
+
+- :LlmClient: is the only way to a language model: `complete(messages, options)` returns text.
+
+- :FakeLlmClient: is the :LlmClient: of tests: deterministic, calling no model.
+  - As the red-flag classifier it answers the id of the first :RedFlag: of the :Protocol: one of whose `patterns` the message contains, else none.
+  - As the topic matcher it answers the id of the first `guidanceTopics` entry one of whose `keywords` the message contains, else none.
+
+- :ChatSession: is one conversation of a :Patient: with the bot: its id `chat-<n>`, its transcript and its survey answers.
+
+- :ChatSummary: is the `ChatSummary` of :DomovApi: of one :ChatSession:.
+
+- :SafeFallback: is the reply "Tega ne morem presoditi. Vprašanje bom zapisal za zdravnika."
+
+***implementation reqs***
+
+- :LlmClient: is chosen by `LLM_PROVIDER`: `fake`, the default, is :FakeLlmClient:; `anthropic` calls the Anthropic Messages API with `ANTHROPIC_API_KEY` and the model in `LLM_MODEL`, if set.
+
+- :UnitTests: use :FakeLlmClient: only, and never call a model.
+
+***test reqs***
+
+- :ConformanceTests: start the service with `LLM_PROVIDER` `fake`, and never call a model.
+
+***functional specs***
+
+# chat-session
+`POST /chat` without `sessionId` starts a :ChatSession: of the :Patient: of the token; with an unknown `sessionId`, or one of another :Patient:, it returns `404` with `not_found`.
+- Every message and reply is added to the transcript, with its role and :SimNow:.
+- Every reply is a `ChatReply` of :DomovApi:, with `doctorPhone` the :Report:'s `doctorContactPhone`; `watchFor` is empty, and `alertCreated`, `showContactDoctor` and `showEmergency112` false, unless a rule below sets them.
+
+# input-guard
+Every `text` message is first checked for red flags: lowercased, against the `patterns` of every :RedFlag: of the :Protocol:, then by :LlmClient: as a classifier.
+- On a hit the reply is `type` `ESCALATION` with no advice: `text` the :RedFlagWarning:'s `message`, and `showContactDoctor` and `showEmergency112` those of the :RedFlagWarning: of the :RedFlag:'s `symptom`.
+- A `RED` :Assessment: with one `R1` :Reason: and its `NURSE` :Alert: are kept; `alertCreated` is true and `alertId` that :Alert:'s id.
+
+# chat-guidance
+A `text` message without a red flag gets a reply by the first rule that holds:
+- Asking about a medication, a dose, a procedure, a test or a therapy: `type` `REFUSAL`, `text` referring to the doctor or pharmacist; the question is recorded for the summary.
+- Matched by :LlmClient: to a `guidanceTopics` entry of the :Protocol:: `type` `GUIDANCE`, `text` its `title` with the :DayAfterDischarge: of :SimNow:, and its `watchFor`, `warningSigns` and `whenToCall`.
+- Otherwise `type` `NOT_COVERED`, `text` saying the protocol does not cover it and offering the survey.
+
+# chat-survey
+A `startSurvey` message gets the `start` node of the :Protocol:'s `surveyGraph` as `type` `SURVEY_QUESTION`, with `nextSurveyQuestion` its `nodeId`, `topic`, `question` and `answers` (`id`, `label`), and `text` its `question`.
+- A `surveyAnswerId` of the node last asked is recorded with its question and label, and gets its `next` node the same way; when `next` is null, `type` `SUMMARY_READY`, `text` asking the patient to end the conversation to see the summary.
+- An answer with `redFlag` gets the `ESCALATION` reply of that :RedFlag:, as the input guard gives it, and ends the survey.
+- An id not among the last node's answers returns `422` with `validation_error`.
+
+# output-guard
+Every bot reply is checked last, before it is returned: one containing a diagnosis phrase, a medication name, a dose - a number followed by `mg`, `ml` or `tablet` - or a recommendation of a procedure or test has its `text` replaced by :SafeFallback:, `type` `REFUSAL`, and empty `watchFor` and `warningSigns`, and is logged.
+- An `ESCALATION` reply never holds reassuring text.
+
+# chat-summary
+`POST /chat/{id}/end` makes the :ChatSummary: of the session, id `sum-<n>`, with `summaryStatus` `DRAFT`, and returns `200` with it.
+- `fullTranscript` is the whole transcript, `surveyAnswers` the answers recorded, `botGuidanceGiven` the `GUIDANCE` replies, and `patientQuestions` the patient's `text` messages.
+- `POST /chat/{id}/summary/confirm` sets `confirmedAt` :SimNow: and `summaryStatus` `SENT`, returning `200`; with no :ChatSummary: yet, `409` with `conflict`.
+- `GET /chat/{id}/summary` returns `200` with it to its :Patient:'s token, and without a token only once `SENT`; otherwise `404` with `not_found`.

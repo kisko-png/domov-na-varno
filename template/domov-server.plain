@@ -1,0 +1,76 @@
+---
+import:
+  - stdlib/lang/typescript
+  - stdlib/backend/common
+  - domov-core
+description: The service stack of "Domov na varno" - Fastify on Node.js 22.19 or later, SQLite, the library's API kept - imported by the modules of build steps 3-7.
+---
+
+***definitions***
+
+- :DomovApi: is the JSON HTTP API of the service, defined by [openapi.yaml](openapi.yaml).
+
+- :SimNow: is the simulated now: the real clock plus an offset in minutes, 0 when the service starts.
+
+- :Db: is the service's SQLite database.
+
+- :Store: is what :Db: holds: the :Patient:, :Report:, :CheckIn:, :Assessment:, :Alert:, :Draft: and :Reminder: items.
+
+- :PatientInstructions: of a :Patient: are the `specialWarnings`, then the `restrictions`, then the `recommendations` of its :Report:, one string each.
+
+- :CurrentSlot: of a :Patient: is its earliest :CheckInSlot: due at or before :SimNow: and not covered, as `assessSilence` counts a slot covered; when there is none, its next :CheckInSlot: after :SimNow:.
+
+- :Draft: is an unfinished check-in: a `CheckInDraft` of :DomovApi:, at most one per :Patient: and :CheckInSlot:.
+
+- :Reminder: is a simulated message to a :Patient: about a :CheckInSlot:, a `Reminder` of :DomovApi:.
+
+- :RedFlagWarning: is a `RedFlagWarning` of :DomovApi: for a list of :Symptom: ids of a :Patient:.
+  - `redFlags` are the :RedFlag: items of its :Protocol: that name one of the ids; `showContactDoctor` is whether there is one, and `showEmergency112` whether one is `EMERGENCY`.
+  - `doctorPhone` is the :Report:'s `doctorContactPhone`; `message`, only with `showContactDoctor`, is "Kontaktirajte zdravnika" with `doctorPhone`, adding 112 when `showEmergency112`.
+
+- :DemoNotice: is "Vse klinične vrednosti so demonstracijske in niso klinično preverjene.", the `demoNotice` of every response of :DomovApi: that has one.
+
+- :PatientStatus: of a :Patient: is the `status` of its latest :Assessment:, `GREEN` when it has none.
+
+- :Anticoagulant: is a medication whose lowercased name contains one of `apixaban`, `rivaroxaban`, `rivaroksaban`, `dabigatran`, `edoxaban`, `edoksaban`, `warfarin`, `varfarin`, `acenocoumarol`, `acenokumarol`, `enoxaparin`, `enoksaparin`, `heparin`.
+
+- :PersonalProtocol: of a :Patient: is its :Protocol: personalised from its :Report:.
+  - With an :Anticoagulant: in `medications`, it has the :RedFlag: `{ id: "anticoagulant-bleeding", symptom: "heavy-bleeding", severity: "CONTACT_DOCTOR" }` with a Slovenian `action`, and the :Symptom: `heavy-bleeding` labelled "Močna krvavitev" when its :Protocol: has none.
+
+***implementation reqs***
+
+- :Implementation: runs on Node.js 22.19 and later: `"engines": { "node": ">=22.19" }` in `package.json`, and no API newer than Node.js 22.19.
+
+- :Implementation: uses Fastify 5, with TypeBox schemas through `@fastify/type-provider-typebox` for validation, and `@fastify/cors` allowing every origin.
+
+- :Implementation: is an ES module package: `"type": "module"` in `package.json`, `module` and `moduleResolution` `NodeNext` in `tsconfig.json`, and every relative import ending in `.js`.
+
+- :Implementation: keeps the library's public API in `src/index.ts`, built to `dist/index.js` with type declarations, and its errors in `src/errors.ts` under `DomovError`.
+
+- :Implementation: keeps the service in `src/`: `src/app.ts` builds it in `buildApp(deps)`, `src/server.ts` starts it and closes it on a signal, `src/routes/` holds one plugin per resource, `src/services/` the services and `src/repositories/` the repositories over :Db:.
+  - It builds with `npm run build` - `tsc` into `dist/` - and starts with `npm start`, which runs `node dist/server.js`.
+
+- :Implementation: declares a schema for every route's body, query, params and response, as :DomovApi: gives them; it turns errors into responses in one `setErrorHandler`, and unknown routes in `setNotFoundHandler`.
+
+- :Implementation: logs with Fastify's own pino logger, `requestIdHeader` `x-request-id`, a UUID v4 from `genReqId` when it is missing, and `requestIdLogLabel` `request_id`.
+
+- :Implementation: listens on the port in `PORT`, 3000 when unset, as the `servers` entry of :DomovApi: says.
+
+- :Db: is opened with the built-in `node:sqlite` at the path in `DATABASE_PATH`, `domov.db` when unset, and its tables are created at start when missing.
+
+- :Implementation: reads :SimNow: through one clock it gives the services, and calls the core with it as `now`; the offset is kept in :Db:.
+
+- :UnitTests: use Vitest and `app.inject()` on `buildApp` with an in-memory :Db: and a fixed clock, next to the code as `<file>.test.ts`, and run with `npx vitest run`.
+
+***test reqs***
+
+- :ConformanceTests: use Vitest and the built-in `fetch`, and run with `npx vitest run`.
+
+- :ConformanceTests: of the functional specs of protocols and triage import the library from the built `dist/index.js` and use its public API only.
+
+- :ConformanceTests: of every other functional spec start the service from the built code as a separate process, with `npm run build` then `npm start` from the built code's own folder, on a free port given in `PORT` and a fresh `DATABASE_PATH` in a temporary folder, and wait until it accepts connections, for at most 30 seconds.
+  - They reach it over HTTP only, never import its code, and stop it when they finish, passing or failing.
+  - They move time with `POST /sim/advance`, never by waiting.
+  - They check a failure by its status code and the `error.code` of its body, never by its message.
+
+- :ConformanceTests: pass the formatter, the linter and the type checker as the conformance testing script runs them, and are typed throughout.

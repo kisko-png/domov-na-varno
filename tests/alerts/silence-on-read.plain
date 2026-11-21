@@ -1,0 +1,12 @@
+---
+module: alerts
+func_id: silence-on-read
+---
+
+***conformance tests***
+
+# silent-patient-red
+Right after the service starts, `GET /patients` shows `pat-05` with `status` `RED` and a `latestAssessment` with one `R5` reason and no `checkInId`.
+
+# no-duplicate-silence
+After `GET /patients` twice in a row, `GET /assessments?patientId=pat-05` has exactly one :Assessment: with an `R5` reason and `status` `RED`.

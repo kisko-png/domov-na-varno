@@ -1,0 +1,21 @@
+---
+module: checkins
+func_id: submit-check-in
+---
+
+***conformance tests***
+
+# t10-magic-link
+T10: a check-in can be completed through the magic link without login in at most 5 steps.
+
+# t15-required-fields
+T15: submitting without required fields is impossible; a draft is saved and a reminder returns the patient to it.
+
+# t16-red-flag-check-in
+T16: a red flag in a check-in shows "Kontaktirajte zdravnika" immediately and creates a RED Alert on submission.
+
+# fever-red
+With the token of `pat-09`, a final check-in with `wellbeing` 4, `pain` 1, `symptoms` [] and `temperatureC` 38.7 returns `201` with `assessment.status` `RED`, `reassuranceAllowed` `false`, `alertCreated` `true` and no `reassuranceText`.
+
+# stable-green
+With the token of `pat-09`, a final check-in with `wellbeing` 5, `pain` 0, `symptoms` [] and `temperatureC` 36.8 returns `201` with `assessment.status` `GREEN`, `reassuranceAllowed` `true` and `reassuranceText` "v okviru pričakovanega za ta dan".

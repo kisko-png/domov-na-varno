@@ -1,0 +1,78 @@
+{
+  "id": "cardiac-surgery",
+  "name": "Operacija srca",
+  "riskTier": "HIGH",
+  "version": "1.0.0",
+  "procedureKeywords": ["srca", "srčn", "bypass", "obvod", "cabg", "zaklopk", "cardiac", "heart surgery"],
+  "expectedCurve": {
+    "pain": [{ "day": 1, "value": 6 }, { "day": 2, "value": 6 }, { "day": 3, "value": 5.5 }, { "day": 4, "value": 5 }, { "day": 5, "value": 5 }, { "day": 6, "value": 4.5 }, { "day": 7, "value": 4.5 }, { "day": 8, "value": 4 }, { "day": 9, "value": 4 }, { "day": 10, "value": 3.5 }, { "day": 11, "value": 3.5 }, { "day": 12, "value": 3.5 }, { "day": 13, "value": 3 }, { "day": 14, "value": 3 }, { "day": 15, "value": 3 }, { "day": 16, "value": 2.5 }, { "day": 17, "value": 2.5 }, { "day": 18, "value": 2.5 }, { "day": 19, "value": 2.5 }, { "day": 20, "value": 2 }, { "day": 21, "value": 2 }, { "day": 22, "value": 2 }, { "day": 23, "value": 2 }, { "day": 24, "value": 2 }, { "day": 25, "value": 2 }, { "day": 26, "value": 1.5 }, { "day": 27, "value": 1.5 }, { "day": 28, "value": 1.5 }, { "day": 29, "value": 1.5 }, { "day": 30, "value": 1.5 }],
+    "wellbeing": [{ "day": 1, "value": 2.5 }, { "day": 2, "value": 2.5 }, { "day": 3, "value": 2.5 }, { "day": 4, "value": 3 }, { "day": 5, "value": 3 }, { "day": 6, "value": 3 }, { "day": 7, "value": 3 }, { "day": 8, "value": 3 }, { "day": 9, "value": 3 }, { "day": 10, "value": 3 }, { "day": 11, "value": 3.5 }, { "day": 12, "value": 3.5 }, { "day": 13, "value": 3.5 }, { "day": 14, "value": 3.5 }, { "day": 15, "value": 3.5 }, { "day": 16, "value": 3.5 }, { "day": 17, "value": 3.5 }, { "day": 18, "value": 3.5 }, { "day": 19, "value": 3.5 }, { "day": 20, "value": 3.5 }, { "day": 21, "value": 4 }, { "day": 22, "value": 4 }, { "day": 23, "value": 4 }, { "day": 24, "value": 4 }, { "day": 25, "value": 4 }, { "day": 26, "value": 4 }, { "day": 27, "value": 4 }, { "day": 28, "value": 4 }, { "day": 29, "value": 4 }, { "day": 30, "value": 4 }]
+  },
+  "questions": [
+    { "id": "chest-pain", "label": "Bolečina ali pritisk v prsih, ki ni od rane" },
+    { "id": "shortness-of-breath", "label": "Težko dihanje v mirovanju" },
+    { "id": "palpitations", "label": "Hitro ali nepravilno bitje srca" },
+    { "id": "fainting", "label": "Omedlevica ali huda vrtoglavica" },
+    { "id": "wound-redness", "label": "Rdečina, toplota ali izcedek iz rane na prsnici" },
+    { "id": "leg-swelling", "label": "Nova oteklina nog" },
+    { "id": "weight-gain", "label": "Pridobitev več kot 1 kg v enem dnevu" },
+    { "id": "tiredness", "label": "Utrujenost" },
+    { "id": "poor-sleep", "label": "Slab spanec" }
+  ],
+  "redFlags": [
+    { "id": "cardiac-chest-pain", "symptom": "chest-pain", "severity": "EMERGENCY", "action": "Takoj pokličite 112.", "patterns": ["bolečina v prsih", "tišči me v prsih", "pritisk v prsih", "boli me srce"] },
+    { "id": "cardiac-sob", "symptom": "shortness-of-breath", "severity": "EMERGENCY", "action": "Takoj pokličite 112.", "patterns": ["težko diham", "ne morem dihati", "zmanjkuje mi zraka", "dušim se"] },
+    { "id": "cardiac-fainting", "symptom": "fainting", "severity": "EMERGENCY", "action": "Takoj pokličite 112.", "patterns": ["omedlel", "omedlela", "izgubil zavest", "izgubila zavest"] },
+    { "id": "cardiac-palpitations", "symptom": "palpitations", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["srce mi razbija", "nepravilno bitje", "srce mi preskakuje"] },
+    { "id": "cardiac-wound", "symptom": "wound-redness", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["rana je rdeča", "rana je topla", "izcedek iz rane", "rana se cedi", "gnoj"] },
+    { "id": "cardiac-weight", "symptom": "weight-gain", "severity": "CONTACT_DOCTOR", "action": "Še danes pokličite zdravnika.", "patterns": ["pridobil kilogram", "pridobila kilogram", "hitro se redim"] }
+  ],
+  "surveyGraph": {
+    "start": "onset",
+    "nodes": [
+      { "id": "onset", "topic": "onset", "question": "Kdaj se je težava začela?", "answers": [
+        { "id": "now", "label": "Pravkar", "next": "severity" },
+        { "id": "today", "label": "Danes", "next": "severity" },
+        { "id": "days", "label": "Pred nekaj dnevi", "next": "severity" }
+      ] },
+      { "id": "severity", "topic": "severity", "question": "Kako močna je težava?", "answers": [
+        { "id": "mild", "label": "Blaga", "next": "modifiers" },
+        { "id": "moderate", "label": "Zmerna", "next": "accompanying" },
+        { "id": "severe", "label": "Zelo močna", "next": "accompanying" }
+      ] },
+      { "id": "accompanying", "topic": "accompanying", "question": "Ali imate še katero od teh težav?", "answers": [
+        { "id": "none", "label": "Nič od naštetega", "next": "modifiers" },
+        { "id": "fever", "label": "Vročina ali mrzlica", "next": "modifiers" },
+        { "id": "chest", "label": "Bolečina ali pritisk v prsih", "next": null, "redFlag": "cardiac-chest-pain" },
+        { "id": "breath", "label": "Težko dihanje v mirovanju", "next": null, "redFlag": "cardiac-sob" }
+      ] },
+      { "id": "modifiers", "topic": "modifiers", "question": "Kaj težavo poslabša ali olajša?", "answers": [
+        { "id": "effort-worse", "label": "Napor jo poslabša", "next": null },
+        { "id": "rest-better", "label": "Počitek jo olajša", "next": null },
+        { "id": "nothing-helps", "label": "Nič ne pomaga", "next": null }
+      ] }
+    ]
+  },
+  "guidanceTopics": [
+    { "id": "wound", "title": "Rana na prsnici", "keywords": ["rana", "šiv", "prsnica", "brazgotina"],
+      "watchFor": ["Barvo in toploto kože okoli rane", "Ali se iz rane kaj cedi", "Ali čutite pokanje ali premikanje prsnice"],
+      "warningSigns": ["Rdečina, ki se širi", "Izcedek iz rane", "Vročina nad 38 °C"],
+      "whenToCall": "Če opazite katerega od opozorilnih znakov, še danes pokličite zdravnika." },
+    { "id": "activity", "title": "Telesna dejavnost", "keywords": ["hoja", "sprehod", "napor", "dvigovanje", "stopnice"],
+      "watchFor": ["Kako hitro se po hoji zadihate", "Ali je hoja vsak dan nekoliko lažja"],
+      "warningSigns": ["Težko dihanje v mirovanju", "Bolečina ali pritisk v prsih med naporom"],
+      "whenToCall": "Ob bolečini v prsih ali težkem dihanju v mirovanju takoj pokličite 112." },
+    { "id": "swelling", "title": "Oteklina in teža", "keywords": ["oteklina", "otekle", "teža", "kilogram"],
+      "watchFor": ["Težo vsako jutro ob isti uri", "Ali so gležnji zvečer bolj otekli"],
+      "warningSigns": ["Več kot 1 kg več v enem dnevu", "Nova oteklina obeh nog"],
+      "whenToCall": "Ob hitri pridobitvi teže ali novi oteklini še danes pokličite zdravnika." },
+    { "id": "heartbeat", "title": "Bitje srca", "keywords": ["srce", "utrip", "razbija", "bitje"],
+      "watchFor": ["Ali je bitje srca enakomerno", "Ali se pojavi vrtoglavica"],
+      "warningSigns": ["Hitro ali nepravilno bitje srca", "Omedlevica"],
+      "whenToCall": "Ob nepravilnem bitju srca pokličite zdravnika, ob omedlevici takoj 112." }
+  ],
+  "sources": [
+    { "title": "NHS - Coronary artery bypass graft: Recovery", "url": "https://www.nhs.uk/conditions/coronary-artery-bypass-graft-cabg/recovery/" },
+    { "title": "NHLBI - Heart Surgery: Recovery", "url": "https://www.nhlbi.nih.gov/health/heart-surgery/recovery" }
+  ]
+}

@@ -1,0 +1,9 @@
+---
+module: reports
+func_id: personal-protocol
+---
+
+***conformance tests***
+
+# t9-anticoagulant
+T9: a Report with an anticoagulant adds bleeding as a red flag.

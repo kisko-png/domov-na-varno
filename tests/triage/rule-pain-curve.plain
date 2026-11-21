@@ -1,0 +1,9 @@
+---
+module: triage
+func_id: rule-pain-curve
+---
+
+***conformance tests***
+
+# t3-pain-tolerance
+T3: pain above tolerance on day 4 gives YELLOW; two consecutive days above twice the tolerance gives RED.

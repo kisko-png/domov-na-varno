@@ -1,0 +1,9 @@
+---
+module: chat
+func_id: input-guard
+---
+
+***conformance tests***
+
+# t6-urgent-messages
+T6: for 30 urgent-symptom messages the bot always creates a RED Alert and never returns reassuring text.

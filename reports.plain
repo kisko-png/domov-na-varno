@@ -1,0 +1,18 @@
+---
+import:
+  - domov-server
+requires:
+  - alerts
+description: Step 5 - report to protocol selection and personalisation.
+---
+
+***functional specs***
+
+# personal-protocol
+Every :Patient:'s :Protocol:, wherever one is used - assessing, warning, viewing - is its :PersonalProtocol:, the seeded :Patient: items included.
+
+# create-report
+`POST /reports` with a `ReportCreate` of :DomovApi: creates a :Patient: and its :Report:, and returns `201` with its `PatientDetail`, its `protocol` the :PersonalProtocol: and its `patientInstructions` its :PatientInstructions:.
+- Its :Protocol: is the first of `listProtocols()` with a `procedureKeywords` entry contained in the lowercased `procedure`; with none, `422` with `no_matching_protocol`, and nothing is stored.
+- Ids continue `pat-NN` and `rep-NN` from 13; `accessToken` is a random UUID v4.
+- The :Patient: has no :Assessment: yet, so its `status` is `GREEN`.

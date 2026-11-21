@@ -1,0 +1,9 @@
+---
+module: triage
+func_id: rule-temperature
+---
+
+***conformance tests***
+
+# t2-temperature
+T2: temperature 38.5 gives RED; 38.2 gives YELLOW.

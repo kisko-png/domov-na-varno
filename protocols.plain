@@ -1,0 +1,33 @@
+---
+import:
+  - domov
+description: Step 1 - the protocol catalogue and the demo seed data.
+---
+
+***definitions***
+
+- :ProtocolCatalogue: is the three :Protocol: items, in this order:
+  - hip replacement, `MEDIUM`: [resources/protocols/hip-replacement.json](resources/protocols/hip-replacement.json)
+  - cardiac surgery, `HIGH`: [resources/protocols/cardiac-surgery.json](resources/protocols/cardiac-surgery.json)
+  - minor abdominal surgery, `LOW`: [resources/protocols/minor-abdominal-surgery.json](resources/protocols/minor-abdominal-surgery.json)
+
+- :Seed: is the demo data: fictional :Patient: items, their :Report: items and their :CheckIn: history.
+
+***functional specs***
+
+# list-protocols
+`listProtocols()` returns the :ProtocolCatalogue: in its order; `getProtocol(id)` returns the one :Protocol: with that `id`.
+- Each :Protocol: has every field of its file, plus `checkInSchedule`, `durationDays` and `painTolerance` of its :RiskTier:.
+- `getProtocol` with an unknown `id` throws `UnknownProtocolError`.
+
+# build-seed
+`buildSeed(now)` returns `{ patients, reports, checkIns }`: 12 fictional :Patient: items, 4 for each :Protocol:, each with one :Report: and :CheckIn: items for days 1 to 7.
+- The same `now` always gives the same :Seed:.
+- Every `dischargeDate` is the :LocalDay: 8 days before the :LocalDay: of `now`.
+- Ids are `pat-01` to `pat-12`, `rep-01` to `rep-12` and `tok-01` to `tok-12` for `accessToken`; phones are `+386 40 000 0NN`, NN the patient's number; names are fictional Slovenian names.
+- Each :Report:'s `procedure` contains a `procedureKeywords` entry of its patient's :Protocol:; `pat-01` to `pat-04` take hip replacement, with `pat-02` taking the anticoagulant `apixaban`.
+- A :CheckIn: is at `preferredCheckInTime` of its day; a `HIGH` patient has a second one 12 hours later on days 1 to 3.
+- `pat-01`, hip replacement, deteriorates slowly: pain 6, 6, 5, 5, 5, 6, 7, wellbeing 3, 3, 3, 3, 3, 2, 2 and temperature 37.2, 37.3, 37.4, 37.5, 37.6, 37.8, 38.1 on days 1 to 7.
+- `pat-05`, cardiac surgery, stopped checking in: no :CheckIn: after day 4.
+- `pat-09`, minor abdominal surgery, is stable: each day pain is its expected pain rounded down, wellbeing its expected wellbeing rounded up, temperature 36.8 and no symptoms.
+- Every other patient has pain within its `painTolerance` of the expected pain, wellbeing at most 1 below the expected wellbeing, temperature below 37.5 and no :Symptom: that a :RedFlag: names.

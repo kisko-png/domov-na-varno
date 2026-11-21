@@ -1,0 +1,43 @@
+{
+  "name": "protocols",
+  "version": "0.1.0",
+  "description": "Domov na varno - protocol catalogue and demo seed",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --max-warnings 0 .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "start": "node dist/server.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.4.3",
+    "@fastify/type-provider-typebox": "^6.3.0",
+    "fastify": "^5.12.8",
+    "typebox": "^1.4.7"
+  }
+}

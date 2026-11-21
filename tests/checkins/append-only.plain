@@ -1,0 +1,9 @@
+---
+module: checkins
+func_id: append-only
+---
+
+***conformance tests***
+
+# t13-append-only
+T13: check-ins and assessments are append-only; delete and update attempts are rejected.

@@ -1,0 +1,116 @@
+# Any model pi supports works (https://pi.dev): a capable one to talk to, a smaller, cheaper one for the coding.
+harness-model: amazon-bedrock/global.anthropic.claude-opus-5-5:medium  # you talk to it: it writes the specs and plans the work
+coding-model: amazon-bedrock/global.anthropic.claude-opus-5-5:low      # it writes the code
+# The :level is how hard each thinks - off, minimal, low, medium, high, xhigh or max. The reviews and judges run on the
+# coding model but think medium, as models: below shows.
+
+# Every other setting is written out below with the value turri uses for it, so the file says how the project is
+# built: change one to change it. The optional ones, which have no value of their own, are commented out - uncomment
+# one to use it. docs/config.md has them all.
+
+# Whether functional specs are conformance tested: black-box tests of the built software against the scenarios of
+# their test plain files, run with the whole suite as more lands. They make each change take about twice as long.
+# false: none - no scenarios written or tested. /conform in the chat turns them on, or true here.
+conformance-tests: true
+
+# Whether the code and its tests are reviewed once they pass - two reviews at most, the second weighed by the arbiter.
+review: false
+
+# Whether the coding agent and the reviewer can put a bug in the code for one run of the unit tests (can_it_fail),
+# to see that a test catches it - on a copy of the code, or in place and put back after.
+mutation-testing: true
+
+# Whether turri stops a running pulse the spec has moved on from. false: it lands, the change regenerated on top.
+allow-to-stop-jobs: true
+
+# Whether every pulse that lands code is launched, in the background, as the project's launch guidance says.
+launch-after-pulse: true
+
+# Whether a chat of its own, the sentinel, checks every pulse that finishes - and, with launch-after-pulse, tests what
+# was launched - and tells you in the chat you are in when something needs you. ask: you are asked, with what it does,
+# before it first opens in a session; true: it opens without asking; false: none.
+sentinel: true
+
+# What the testing scripts run on: in-place - the code itself; copy - a fresh copy of it.
+testing-scripts-run-on: in-place
+
+# Seconds each agent turn has, for every role without its own; 0 for none.
+turn-limit: 120
+
+# How many pulses run at once, on modules that share nothing - half this machine's cores, one to four.
+parallel-jobs: 4
+
+# Tokens of work an agent holds before it is compacted between turns; at least 1000.
+compact-at: 100000
+
+# How big a pulse may be: the most functional specs the planner groups into one, and the most lines of spec - its
+# functional specs with the definitions they bring - before a group is split again.
+max-specs-per-pulse: 3
+max-lines-per-pulse: 120
+
+# Rules left out of the spec-writing agents' prompts - the files of genome/rules/, without .md. The integration rules
+# are left out to start with: take one out of this list when this project writes an integration against a REST API.
+rules-off: [integration-embedded, integration-embedded-testing, integration-standalone]
+
+# Credentials the agents' commands need while they work: dotenv files by path, and variables from turri's
+# environment by name - files: [.env], vars: [MY_SERVICE_API_KEY]. Their values are masked in everything an agent is shown.
+agent-env:
+  files: []
+  vars: []
+
+# Folders of this machine an agent's commands may read beside the usual ones - a toolchain somewhere unusual: [/srv/zig].
+toolchains: []
+
+# Megabytes of the ledger - what turri did, as facts, in .turri/ledger, never committed - the project keeps; past it,
+# the oldest runs' are pruned. 0 keeps none.
+ledger-keep: 100
+
+# Megabytes of package caches - npm's, pip's, Maven's... in plain_modules/.turri/cache - the project keeps; past it,
+# the least recently written are removed. 0 keeps none.
+cache-keep: 4096
+
+# Whether turri keeps what it writes for debugging it: every agent's whole log and session, each pulse's log, the
+# test runs' outputs, the agents' temporary files. Off, only what turri reads to work is kept. TURRI_DEBUG=1 for one run.
+debug: false
+
+# The testing scripts, by path from the project root - written here by the skill that writes them. One not named is
+# looked for at the root, then in test_scripts/. Each runs the static checks of what it tests - the formatter, the
+# linter, the type checker - with the tests, exiting 80 when the tests pass and only the checks do not. The prepare
+# script, optional, runs on the build before every conformance testing script run.
+unittests-script: test_scripts/run_unittests_node.sh
+conformance-tests-script: test_scripts/run_conformance_tests_node.sh
+# prepare-environment-script: test_scripts/prepare_environment_python.sh
+
+# Optional: the .plain file turri regenerate builds when none is named.
+# module: app.plain
+module: triage.plain
+
+# Optional: the folder of the test plain files - a functional spec's conformance and acceptance scenarios - a folder
+# per module in it: tests/<module>/<func-id>.plain. Without it, tests.
+# test-dir: tests
+
+# Optional: a folder the code starts from - an existing codebase to build on, or files to use, such as images. It is
+# copied in once, before the first pulse, and never written to; the ***plain can refer to it, and link into it.
+# base-folder: existing-app
+
+# Optional: the judge and test review of a conformance run, when not on coding-model. A model is provider/id,
+# provider/id:thinking, or { model, thinking } - thinking is off, minimal, low, medium, high, xhigh or max.
+# judge-model: amazon-bedrock/global.anthropic.claude-opus-5-5:high
+
+# Optional: each agent role's own model, thinking and turn limit. Without it, every role runs on coding-model and the
+# conversation's side on harness-model, each thinking as written here. What an entry leaves out it takes from default.
+# models:
+#   default: amazon-bedrock/global.anthropic.claude-opus-5-5
+#   chat: amazon-bedrock/global.anthropic.claude-opus-5-5               # the conversation - as harness-model, which it wins over
+#   sentinel: amazon-bedrock/global.anthropic.claude-opus-5-5           # the sentinel: checks every finished pulse and tests what is launched
+#   planner: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: medium } # cuts the work into pulses
+#   diagnosis: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: medium } # looks into a pulse that failed for good
+#   launch: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: low } # the launch agent: turri launch's, the chat's and launch-after-pulse's
+#   coding: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: low, turn-limit: 180 } # as coding-model, which it wins over
+#   conformance: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: low } # writes the conformance tests
+#   explorer: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: low } # explores the code for a conformance run
+#   reviewer: { thinking: medium }                                      # reviews the code and its unit tests
+#   test-reviewer: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: medium } # reviews the conformance tests
+#   judge: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: medium } # judges a failing conformance run - as judge-model, which it wins over
+#   arbiter: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: medium } # weighs a second review
+#   debugger: { model: amazon-bedrock/global.anthropic.claude-opus-5-5, thinking: medium } # a fresh look at unit tests that keep failing the same way

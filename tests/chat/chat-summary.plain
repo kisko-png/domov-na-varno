@@ -1,0 +1,9 @@
+---
+module: chat
+func_id: chat-summary
+---
+
+***conformance tests***
+
+# t7-summary
+T7: the summary contains the full conversation and survey answers and is sent only after patient confirmation.

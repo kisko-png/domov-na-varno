@@ -1,0 +1,11 @@
+---
+module: alerts
+func_id: list-patients
+---
+
+***conformance tests***
+
+# seeded-dashboard-order
+Right after the service starts, `GET /patients` returns 12 items, with no `GREEN` before a `YELLOW` or `RED` and no `YELLOW` before a `RED`.
+- The item of `pat-09` has `status` `GREEN`.
+- Every item has `dayAfterDischarge` 8.

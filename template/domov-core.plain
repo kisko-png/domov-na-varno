@@ -1,0 +1,50 @@
+---
+description: Domain concepts and core rules of "Domov na varno", shared by the library and the server.
+---
+
+***definitions***
+
+- :DemoValue: is a clinical number of this project - a curve value, a tolerance, a threshold - that is not clinically validated.
+
+- :RiskTier: is `HIGH`, `MEDIUM` or `LOW`; the check-in schedule, duration, pain tolerance and silence thresholds of each are in [resources/risk-tiers.yaml](resources/risk-tiers.yaml), all :DemoValue: items.
+
+- :Protocol: is a monitoring protocol for one kind of procedure, as [resources/protocol.schema.json](resources/protocol.schema.json) describes it, with `checkInSchedule`, `durationDays` and `painTolerance` added from its :RiskTier:.
+
+- :Symptom: is an entry of a :Protocol:'s `questions`, the daily check-in symptom checklist, known by its `id`.
+
+- :RedFlag: is an entry of a :Protocol:'s `redFlags`: `{ id, symptom, severity, action, patterns? }`, where `symptom` is the id of a :Symptom: and `severity` is `CONTACT_DOCTOR` or `EMERGENCY`.
+  - The message shown for an `EMERGENCY` :RedFlag: adds 112.
+
+- :LocalDay: is a calendar date in the `Europe/Ljubljana` time zone, written `YYYY-MM-DD`.
+
+- :Report: is a discharge report: `id`, `patientId`, `procedure`, `procedureDate` (a :LocalDay:), `medications[]`, `specialWarnings[]`, `restrictions[]`, `recommendations`, `doctorContactPhone`.
+
+- :Patient: is `id`, `name`, `phone`, `dischargeDate` (a :LocalDay:), `protocolId`, `reportId`, `caregiverName?`, `preferredCheckInTime` (`HH:MM` in `Europe/Ljubljana`), `accessToken` (the magic-link token).
+
+- :DayAfterDischarge: of a moment is the number of :LocalDay: items from a :Patient:'s `dischargeDate` to the :LocalDay: of that moment: the discharge day is 0, the next day 1.
+
+- :CheckIn: is a final, append-only daily check-in: `id`, `patientId`, `protocolVersion`, `dayAfterDischarge`, `timestamp`, `wellbeing` (1-5), `pain` (0-10), `symptoms[]` (ids of :Symptom: items), `temperatureC?`, `photoRef?`, `note?`, `filledBy` (`PATIENT` or `CAREGIVER`).
+
+- :TriageStatus: is `GREEN`, `YELLOW` or `RED`, in rising severity.
+
+- :Reason: is `{ text, ruleId }`: `ruleId` is `R0` to `R5` and `text` is Slovenian.
+
+- :Assessment: is an append-only triage result: `id`, `patientId`, `checkInId?`, `status` (a :TriageStatus:), `reasons[]` (:Reason: items), `createdAt`.
+  - An :Assessment: of silence has no `checkInId`.
+
+- :Alert: is `id`, `assessmentId`, `recipientRole` (`NURSE` or `COORDINATOR`), `createdAt`, `acknowledgedAt?`, `escalatedAt?`.
+
+- :CheckInSlot: is one check-in a :Patient: is due to make: `{ day, index, dueAt }`, `index` 1 or 2 within its day.
+
+- :History: is the final :CheckIn: items of one :Patient: made before the one assessed.
+
+***implementation reqs***
+
+- :Implementation: keeps its pure core in `src/core/`: no I/O, no reading of the clock (`Date.now()`, `new Date()` without an argument), no randomness and no environment.
+  - Every core function that needs the time takes `now` as an argument; every one that creates a record takes its id as an argument.
+
+- :Implementation: keeps every user-facing string in `src/strings.sl.ts`, in Slovenian with its diacritics (č, š, ž), and every file in UTF-8.
+
+- :Implementation: writes every moment as an ISO 8601 string with its offset, and computes :LocalDay: items in `Europe/Ljubljana` with `Intl`, daylight saving time included.
+
+- :Implementation: keeps each protocol file it is given as `src/core/protocols/<id>.json`, byte for byte, imported as a JSON module, and the :RiskTier: settings as a typed constant in `src/core/riskTiers.ts`.

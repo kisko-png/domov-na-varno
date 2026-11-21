@@ -1,0 +1,9 @@
+---
+module: chat
+func_id: chat-survey
+---
+
+***conformance tests***
+
+# t12-survey-graph
+T12: the survey picks the next question from the previous answer by the graph rules; a red-flag answer interrupts it and creates a RED Alert.

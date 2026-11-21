@@ -1,0 +1,12 @@
+---
+module: alerts
+func_id: escalate-alerts
+---
+
+***conformance tests***
+
+# t8-escalation
+T8: an unacknowledged RED Alert escalates to the coordinator after 15 minutes.
+
+# acknowledged-not-escalated
+A `NURSE` :Alert: acknowledged with `POST /alerts/{id}/ack` before 15 minutes pass is not escalated, and no `COORDINATOR` :Alert: has its `assessmentId`.
